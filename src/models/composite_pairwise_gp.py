@@ -90,7 +90,7 @@ class CompositePairwiseGP(Model):
         r"""The number of outputs of the model."""
         return 1
 
-    def posterior(self, X: Tensor, observation_noise=False):
+    def posterior(self, X: Tensor, observation_noise=False, posterior_transform=None):
         r"""Computes the posterior over model outputs at the provided points.
         Args:
             X: A `(batch_shape) x q x d`-dim Tensor, where `d` is the dimension
