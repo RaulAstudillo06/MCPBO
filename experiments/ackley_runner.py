@@ -30,11 +30,10 @@ output_dim = 2
 
 def obj_func(X: Tensor) -> Tensor:
     X_unnorm = 4.0 * X - 2.0
-    output = torch.zeros(X_unnorm.shape[:-1] + torch.Size([3]))
+    output = torch.zeros(X_unnorm.shape[:-1] + torch.Size([2]))
     for i in range(input_dim):
         output[..., 0] += X_unnorm[..., i] ** 2
         output[..., 1] += torch.cos(c * X_unnorm[..., i])
-        output[..., 2] += torch.cos(c * X_unnorm[..., i])
     output /= input_dim
     return output
 
@@ -67,7 +66,7 @@ experiment_manager(
     obj_func=obj_func,
     utility_func=utility_func,
     input_dim=input_dim,
-    output_dim=3,
+    output_dim=output_dim,
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,

@@ -343,12 +343,17 @@ def get_new_suggested_query(
             num_queries=1, batch_size=batch_size, input_dim=input_dim
         )
     elif algo == "qEUBO":
+        sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
         if model_type == "Standard" or model_type == "Composite":
-            acquisition_function = qExpectedUtilityBestOption(model=model)
+            acquisition_function = qExpectedUtilityBestOption(
+                model=model, sampler=sampler
+            )
         elif model_type == "Known_Utility":
             acqf_obejctive = GenericMCObjective(objective=utility_func)
             acquisition_function = qExpectedUtilityBestOption(
-                model=model, objective=acqf_obejctive
+                model=model,
+                objective=acqf_obejctive,
+                sampler=sampler,
             )
 
     elif algo == "qTS":
@@ -385,10 +390,14 @@ def compute_utility_val_at_max_post_mean(
     if model_type == "Standard":
         post_mean_func = PosteriorMean(model=model)
     elif model_type == "Known_Utility":
+        sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
         acqf_objective = GenericMCObjective(objective=utility_func)
-        post_mean_func = qSimpleRegret(model=model, objective=acqf_objective)
+        post_mean_func = qSimpleRegret(
+            model=model, objective=acqf_objective, sampler=sampler
+        )
     elif model_type == model_type == "Composite":
-        post_mean_func = qSimpleRegret(model=model)
+        sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
+        post_mean_func = qSimpleRegret(model=model, sampler=sampler)
     max_post_mean_func = optimize_acqf_and_get_suggested_query(
         acq_func=post_mean_func,
         bounds=standard_bounds,

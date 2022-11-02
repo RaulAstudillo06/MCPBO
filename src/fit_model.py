@@ -67,5 +67,5 @@ def fit_model(
             models_list.append(deepcopy(model))
         model = ModelListGP(*models_list)
     elif model_type == "Composite":
-        model = CompositePairwiseGP(queries, responses)
+        model = CompositePairwiseGP(queries, responses, use_attribute_uncertainty=True)
     return model

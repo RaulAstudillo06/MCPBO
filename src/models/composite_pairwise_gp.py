@@ -1,6 +1,5 @@
 import torch
 
-from copy import deepcopy
 from botorch.fit import fit_gpytorch_model
 from botorch.models.model import Model
 from botorch.models.model_list_gp_regression import ModelListGP
@@ -20,10 +19,12 @@ class CompositePairwiseGP(Model):
         self,
         queries,
         responses,
+        use_attribute_uncertainty=True,
     ) -> None:
         r""" """
         self.queries = queries
         self.responses = responses
+        self.use_attribute_uncertainty = use_attribute_uncertainty
 
         output_dim = responses.shape[-1] - 1
         attribute_models = []
@@ -48,14 +49,18 @@ class CompositePairwiseGP(Model):
             attribute_model = attribute_model.to(
                 device=queries.device, dtype=queries.dtype
             )
+            attribute_model.eval()
             attribute_mean = attribute_model(queries).mean
-            attribute_std = torch.sqrt(attribute_model(queries).variance)
-
-            lower_bounds.append((attribute_mean - attribute_std).min().item())
-            upper_bounds.append((attribute_mean + attribute_std).max().item())
-            attribute_models.append(deepcopy(attribute_model))
-            attribute_means.append(deepcopy(attribute_mean.detach().unsqueeze(-1)))
-
+            # print(attribute_mean)
+            if self.use_attribute_uncertainty:
+                attribute_std = torch.sqrt(attribute_model(queries).variance)
+                lower_bounds.append((attribute_mean - attribute_std).min().item())
+                upper_bounds.append((attribute_mean + attribute_std).max().item())
+            else:
+                lower_bounds.append(attribute_mean.min().item())
+                upper_bounds.append(attribute_mean.max().item())
+            attribute_models.append(attribute_model)
+            attribute_means.append(attribute_mean.detach().unsqueeze(-1))
         self.lower_bounds = torch.as_tensor(lower_bounds).to(
             device=queries.device, dtype=queries.dtype
         )
@@ -83,6 +88,7 @@ class CompositePairwiseGP(Model):
         )
         fit_gpytorch_model(mll)
         utility_model = utility_model.to(device=queries.device, dtype=queries.dtype)
+        utility_model.eval()
         self.utility_model = [utility_model]
 
     @property
@@ -110,6 +116,7 @@ class CompositePairwiseGP(Model):
             X=X,
             lower_bounds=self.lower_bounds,
             upper_bounds=self.upper_bounds,
+            use_attribute_uncertainty=self.use_attribute_uncertainty,
         )
 
     def forward(self, x: Tensor):
@@ -119,6 +126,7 @@ class CompositePairwiseGP(Model):
             X=x,
             lower_bounds=self.lower_bounds,
             upper_bounds=self.upper_bounds,
+            use_attribute_uncertainty=self.use_attribute_uncertainty,
         )
 
 
@@ -128,14 +136,16 @@ class MultivariateNormalComposition(Posterior):
         attribute_models,
         utility_model,
         X,
-        lower_bounds=None,
-        upper_bounds=None,
+        lower_bounds,
+        upper_bounds,
+        use_attribute_uncertainty=True,
     ):
         self.attribute_models = attribute_models
         self.utility_model = utility_model
         self.X = X
         self.lower_bounds = lower_bounds
         self.upper_bounds = upper_bounds
+        self.use_attribute_uncertainty = use_attribute_uncertainty
 
     @property
     def device(self) -> torch.device:
@@ -158,23 +168,27 @@ class MultivariateNormalComposition(Posterior):
     def rsample(self, sample_shape=torch.Size(), base_samples=None):
         # t0 =  time.time()
         # print(base_samples.shape)
-        # print(self.X.shape)
         attribute_samples = []
         for j, attribute_model in enumerate(self.attribute_models):
             attribute_multivariate_normal = attribute_model.posterior(self.X)
-            if base_samples is not None:
-                attribute_samples.append(
-                    attribute_multivariate_normal.rsample(
-                        sample_shape, base_samples=base_samples[..., [j]]
-                    )  # [..., 0]
-                )
+            if self.use_attribute_uncertainty:
+                if base_samples is not None:
+                    attribute_samples.append(
+                        attribute_multivariate_normal.rsample(
+                            sample_shape, base_samples=base_samples[..., [j]]
+                        )  # [..., 0]
+                    )
+                else:
+                    attribute_samples.append(
+                        attribute_sample=attribute_multivariate_normal.rsample(
+                            sample_shape
+                        )  # [..., 0]
+                    )
             else:
-                attribute_samples.append(
-                    attribute_sample=attribute_multivariate_normal.rsample(
-                        sample_shape
-                    )  # [..., 0]
-                )
+                attribute_samples.append(attribute_multivariate_normal.mean)
         attribute_samples = torch.cat(attribute_samples, dim=-1)
+        # print("TEST")
+        # print(attribute_samples.shape)
         # print(attribute_samples.shape)
         normalized_attribute_samples = (attribute_samples - self.lower_bounds) / (
             self.upper_bounds - self.lower_bounds
@@ -187,6 +201,8 @@ class MultivariateNormalComposition(Posterior):
                 torch.sqrt(utility_multivariate_normal.variance),
                 base_samples[..., [-1]],
             )
+            # print(utility_multivariate_normal.mean.shape)
+            # print(base_samples[..., [-1]].shape)
         else:
             utility_samples = utility_multivariate_normal.rsample(sample_shape)
         return utility_samples
