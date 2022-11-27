@@ -19,10 +19,10 @@ from src.experiment_manager import experiment_manager
 
 
 # Objective function
-input_dim = 2
-output_dim = 1
+input_dim = 6
+output_dim = 2
 
-attribute_func = DTLZ1(dim=6, negate=True)
+attribute_func = DTLZ1(dim=input_dim, negate=True)
 
 
 def utility_func(Y: Tensor) -> Tensor:
