@@ -7,7 +7,7 @@ from botorch.models.pairwise_gp import PairwiseGP, PairwiseLaplaceMarginalLogLik
 from botorch.posteriors import Posterior
 from torch import Tensor
 
-
+from src.models.pairwise_kernel_variational_gp import PairwiseKernelVariationalGP
 from src.utils import training_data_for_pairwise_gp
 
 
@@ -31,24 +31,7 @@ class CompositePairwiseGP(Model):
         lower_bounds = []
         upper_bounds = []
         for j in range(output_dim):
-            datapoints, comparisons = training_data_for_pairwise_gp(
-                queries, responses[:, j]
-            )
-            attribute_model = PairwiseGP(
-                datapoints,
-                comparisons,
-                likelihood=PairwiseLogitLikelihood(),
-                jitter=1e-4,
-            )
-
-            mll = PairwiseLaplaceMarginalLogLikelihood(
-                likelihood=attribute_model.likelihood, model=attribute_model
-            )
-            fit_gpytorch_mll(mll)
-            attribute_model = attribute_model.to(
-                device=queries.device, dtype=queries.dtype
-            )
-            attribute_model.eval()
+            attribute_model = PairwiseKernelVariationalGP(queries, responses[..., j])
             attribute_mean = attribute_model(queries).mean
             if self.use_attribute_uncertainty:
                 attribute_std = torch.sqrt(attribute_model(queries).variance)
@@ -58,7 +41,7 @@ class CompositePairwiseGP(Model):
                 lower_bounds.append(attribute_mean.min().item())
                 upper_bounds.append(attribute_mean.max().item())
             attribute_models.append(attribute_model)
-            attribute_means.append(attribute_mean.detach().unsqueeze(-1))
+            attribute_means.append(attribute_mean.detach())
         self.lower_bounds = torch.as_tensor(lower_bounds).to(
             device=queries.device, dtype=queries.dtype
         )
@@ -71,22 +54,7 @@ class CompositePairwiseGP(Model):
         utility_queries = (attribute_means - self.lower_bounds) / (
             self.upper_bounds - self.lower_bounds
         )
-        datapoints, comparisons = training_data_for_pairwise_gp(
-            utility_queries, responses[:, -1]
-        )
-        utility_model = PairwiseGP(
-            datapoints,
-            comparisons,
-            likelihood=PairwiseLogitLikelihood(),
-            jitter=1e-4,
-        )
-
-        mll = PairwiseLaplaceMarginalLogLikelihood(
-            likelihood=utility_model.likelihood, model=utility_model
-        )
-        fit_gpytorch_mll(mll)
-        utility_model = utility_model.to(device=queries.device, dtype=queries.dtype)
-        utility_model.eval()
+        utility_model = PairwiseKernelVariationalGP(utility_queries, responses[..., -1])
         self.utility_model = [utility_model]
 
     @property
@@ -185,9 +153,6 @@ class MultivariateNormalComposition(Posterior):
             else:
                 attribute_samples.append(attribute_multivariate_normal.mean)
         attribute_samples = torch.cat(attribute_samples, dim=-1)
-        # print("TEST")
-        # print(attribute_samples.shape)
-        # print(attribute_samples.shape)
         normalized_attribute_samples = (attribute_samples - self.lower_bounds) / (
             self.upper_bounds - self.lower_bounds
         )

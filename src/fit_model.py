@@ -11,6 +11,7 @@ from botorch.models.pairwise_gp import PairwiseGP, PairwiseLaplaceMarginalLogLik
 from torch import Tensor
 
 from src.models.composite_pairwise_gp import CompositePairwiseGP
+from src.models.pairwise_kernel_variational_gp import PairwiseKernelVariationalGP
 from src.utils import training_data_for_pairwise_gp
 
 
@@ -21,25 +22,7 @@ def fit_model(
     likelihood: Optional[str] = "logit",
 ):
     if model_type == "Standard":
-        if likelihood == "probit":
-            likelihood_func = PairwiseProbitLikelihood()
-        else:
-            likelihood_func = PairwiseLogitLikelihood()
-        datapoints, comparisons = training_data_for_pairwise_gp(
-            queries, responses[:, -1]
-        )
-        model = PairwiseGP(
-            datapoints,
-            comparisons,
-            likelihood=likelihood_func,
-            jitter=1e-4,
-        )
-
-        mll = PairwiseLaplaceMarginalLogLikelihood(
-            likelihood=model.likelihood, model=model
-        )
-        fit_gpytorch_model(mll)
-        model = model.to(device=queries.device, dtype=queries.dtype)
+        model = PairwiseKernelVariationalGP(queries, responses[..., -1])
     elif model_type == "Known_Utility":
         output_dim = responses.shape[-1] - 1
         models_list = []
