@@ -1,15 +1,14 @@
 import torch
 
-from botorch.fit import fit_gpytorch_model
+from botorch.fit import fit_gpytorch_mll
+from botorch.models.likelihoods import PairwiseLogitLikelihood
 from botorch.models.model import Model
-from botorch.models.model_list_gp_regression import ModelListGP
+from botorch.models.pairwise_gp import PairwiseGP, PairwiseLaplaceMarginalLogLikelihood
 from botorch.posteriors import Posterior
 from torch import Tensor
 
 
 from src.utils import training_data_for_pairwise_gp
-from src.models.likelihoods.pairwise import PairwiseLogitLikelihood
-from src.models.pairwise_gp import PairwiseGP, PairwiseLaplaceMarginalLogLikelihood
 
 
 class CompositePairwiseGP(Model):
@@ -45,13 +44,12 @@ class CompositePairwiseGP(Model):
             mll = PairwiseLaplaceMarginalLogLikelihood(
                 likelihood=attribute_model.likelihood, model=attribute_model
             )
-            fit_gpytorch_model(mll)
+            fit_gpytorch_mll(mll)
             attribute_model = attribute_model.to(
                 device=queries.device, dtype=queries.dtype
             )
             attribute_model.eval()
             attribute_mean = attribute_model(queries).mean
-            # print(attribute_mean)
             if self.use_attribute_uncertainty:
                 attribute_std = torch.sqrt(attribute_model(queries).variance)
                 lower_bounds.append((attribute_mean - attribute_std).min().item())
@@ -86,7 +84,7 @@ class CompositePairwiseGP(Model):
         mll = PairwiseLaplaceMarginalLogLikelihood(
             likelihood=utility_model.likelihood, model=utility_model
         )
-        fit_gpytorch_model(mll)
+        fit_gpytorch_mll(mll)
         utility_model = utility_model.to(device=queries.device, dtype=queries.dtype)
         utility_model.eval()
         self.utility_model = [utility_model]

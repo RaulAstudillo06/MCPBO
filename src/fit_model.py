@@ -2,17 +2,16 @@ from copy import deepcopy
 from typing import Optional
 
 from botorch.fit import fit_gpytorch_model
-from botorch.models.model_list_gp_regression import ModelListGP
-
-# from botorch.models.pairwise_gp import PairwiseGP, PairwiseLaplaceMarginalLogLikelihood
-from src.models.likelihoods.pairwise import (
+from botorch.models.likelihoods.pairwise import (
     PairwiseProbitLikelihood,
     PairwiseLogitLikelihood,
 )
-from src.models.composite_pairwise_gp import CompositePairwiseGP
-from src.models.pairwise_gp import PairwiseGP, PairwiseLaplaceMarginalLogLikelihood
-from src.utils import training_data_for_pairwise_gp
+from botorch.models.model_list_gp_regression import ModelListGP
+from botorch.models.pairwise_gp import PairwiseGP, PairwiseLaplaceMarginalLogLikelihood
 from torch import Tensor
+
+from src.models.composite_pairwise_gp import CompositePairwiseGP
+from src.utils import training_data_for_pairwise_gp
 
 
 def fit_model(
