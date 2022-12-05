@@ -68,6 +68,9 @@ def pbo_trial(
             obj_vals = torch.tensor(
                 np.loadtxt(results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt")
             )
+            obj_vals = obj_vals.reshape(
+                obj_vals.shape[0], batch_size, int(obj_vals.shape[1] / batch_size)
+            )
             utility_vals = torch.tensor(
                 np.loadtxt(
                     results_folder + "utility_vals/utility_vals_" + str(trial) + ".txt"
@@ -121,7 +124,7 @@ def pbo_trial(
 
         except:
             # Initial data
-            queries, obj_vals, utility_vals.responses = generate_initial_data(
+            queries, obj_vals, utility_vals, responses = generate_initial_data(
                 num_queries=num_init_queries,
                 batch_size=batch_size,
                 input_dim=input_dim,
@@ -299,7 +302,8 @@ def pbo_trial(
         np.savetxt(
             results_folder + "queries/queries_" + str(trial) + ".txt", queries_reshaped
         )
-        # np.savetxt(results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt", obj_vals.numpy())
+        obj_vals_reshaped = obj_vals.numpy().reshape(obj_vals.shape[0], -1)
+        np.savetxt(results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt", obj_vals_reshaped)
         np.savetxt(
             results_folder + "utility_vals/utility_vals_" + str(trial) + ".txt",
             utility_vals.numpy(),
