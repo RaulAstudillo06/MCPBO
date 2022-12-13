@@ -13,7 +13,7 @@ def generate_initial_data(
     num_queries: int,
     batch_size: int,
     input_dim: int,
-    obj_func,
+    attribute_func,
     utility_func,
     comp_noise_type,
     comp_noise,
@@ -21,16 +21,15 @@ def generate_initial_data(
     seed: int = None,
 ):
     # generate initial data
-
     queries = generate_random_queries(num_queries, batch_size, input_dim, seed)
     if add_baseline_point:
         queries_against_baseline = generate_queries_against_baseline(
-            100, batch_size, input_dim, obj_func, seed
+            100, batch_size, input_dim, attribute_func, seed
         )
         queries = torch.cat([queries, queries_against_baseline], dim=0)
-    obj_vals, utility_vals = get_obj_and_utility_vals(queries, obj_func, utility_func)
-    responses = generate_responses(obj_vals, utility_vals, comp_noise_type, comp_noise)
-    return queries, obj_vals, utility_vals, responses
+    attribute_vals, utility_vals = get_attribute_and_utility_vals(queries, attribute_func, utility_func)
+    responses = generate_responses(attribute_vals, utility_vals, comp_noise_type, comp_noise)
+    return queries, attribute_vals, utility_vals, responses
 
 
 def generate_random_queries(
@@ -48,70 +47,63 @@ def generate_random_queries(
 
 
 def generate_queries_against_baseline(
-    num_queries: int, batch_size: int, input_dim: int, obj_func, seed: int = None
+    num_queries: int, batch_size: int, input_dim: int, attribute_func, seed: int = None
 ):
     # generate `num_queries` queries each constituted by `batch_size` points chosen uniformly at random
-    # random_points = generate_random_queries(10 * (2 ** input_dim), 1, input_dim, seed + 1)
-    # obj_vals = get_obj_vals(random_points, obj_func).squeeze(-1)
     best_point = torch.tensor(
         [0.52] * input_dim
-    )  # random_points[torch.argmax(obj_vals), ...].unsqueeze(0)
+    )
     queries = generate_random_queries(num_queries, batch_size - 1, input_dim, seed + 2)
     queries = torch.cat([best_point.expand_as(queries), queries], dim=1)
-    # print(obj_func(queries))
     return queries
 
 
-def get_obj_and_utility_vals(queries, obj_func, utility_func):
+def get_attribute_and_utility_vals(queries, attribute_func, utility_func):
     queries_2d = queries.reshape(
         torch.Size([queries.shape[0] * queries.shape[1], queries.shape[2]])
     )
 
-    obj_vals = obj_func(queries_2d)
-    utility_vals = utility_func(obj_vals)
-    obj_vals = obj_vals.reshape(
-        torch.Size([queries.shape[0], queries.shape[1], obj_vals.shape[1]])
+    attribute_vals = attribute_func(queries_2d)
+    utility_vals = utility_func(attribute_vals)
+    attribute_vals = attribute_vals.reshape(
+        torch.Size([queries.shape[0], queries.shape[1], attribute_vals.shape[1]])
     )
     utility_vals = utility_vals.reshape(
         torch.Size([queries.shape[0], queries.shape[1]])
     )
-    return obj_vals, utility_vals
+    return attribute_vals, utility_vals
 
 
-def generate_responses(obj_vals, utility_vals, noise_type, noise_level):
-    # generate simulated comparisons based on true underlying objective
-    # print(obj_vals)
-    corrupted_obj_vals = corrupt_vals(obj_vals, noise_type, noise_level)
-    responses_obj_vals = torch.argmax(corrupted_obj_vals, dim=-2)
-    # print(responses_obj_vals)
+def generate_responses(attribute_vals, utility_vals, noise_type, noise_level):
+    # generate simulated comparisons based on true underlying attribute and utility values
+    corrupted_attribute_vals = corrupt_vals(attribute_vals, noise_type, noise_level)
+    responses_attribute_vals = torch.argmax(corrupted_attribute_vals, dim=-2)
     corrupted_utility_vals = corrupt_vals(utility_vals, noise_type, noise_level)
-    # print(utility_vals)
     response_utility = torch.argmax(corrupted_utility_vals, dim=-1)
-    # print(response_utility)
-    responses = torch.cat([responses_obj_vals, response_utility.unsqueeze(-1)], dim=-1)
+    responses = torch.cat([responses_attribute_vals, response_utility.unsqueeze(-1)], dim=-1)
     return responses
 
 
-def corrupt_vals(obj_vals, noise_type, noise_level):
+def corrupt_vals(vals, noise_type, noise_level):
     if noise_type == "noiseless":
-        corrupted_obj_vals = obj_vals
+        corrupted_vals = vals
     elif noise_type == "probit":
         normal = Normal(torch.tensor(0.0), torch.tensor(noise_level))
-        noise = normal.sample(sample_shape=obj_vals.shape)
-        corrupted_obj_vals = obj_vals + noise
+        noise = normal.sample(sample_shape=vals.shape)
+        corrupted_vals = vals + noise
     elif noise_type == "logit":
         gumbel = Gumbel(torch.tensor(0.0), torch.tensor(noise_level))
-        noise = gumbel.sample(sample_shape=obj_vals.shape)
-        corrupted_obj_vals = obj_vals + noise
+        noise = gumbel.sample(sample_shape=vals.shape)
+        corrupted_vals = vals + noise
     elif noise_type == "constant":
-        corrupted_obj_vals = obj_vals.clone()
-        n = obj_vals.shape[0]
+        corrupted_vals = vals.clone()
+        n = vals.shape[0]
         for i in range(n):
             coin_toss = Bernoulli(noise_level).sample().item()
             if coin_toss == 1.0:
-                corrupted_obj_vals[i, 0] = obj_vals[i, 1]
-                corrupted_obj_vals[i, 1] = obj_vals[i, 0]
-    return corrupted_obj_vals
+                corrupted_vals[i, 0] = vals[i, 1]
+                corrupted_vals[i, 1] = vals[i, 0]
+    return corrupted_vals
 
 
 def training_data_for_pairwise_gp(queries, responses):

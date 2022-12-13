@@ -19,18 +19,19 @@ from src.fit_model import fit_model
 from src.utils import (
     generate_initial_data,
     generate_random_queries,
-    get_obj_and_utility_vals,
+    get_attribute_and_utility_vals,
     generate_responses,
     optimize_acqf_and_get_suggested_query,
 )
 
-
-def pbo_trial(
+# this function runs a single trial of a given problem
+# see more details about the arguments in experiment_manager.py 
+def mcpbo_trial(
     problem: str,
-    obj_func: Callable,
+    attribute_func: Callable,
     utility_func: Callable,
     input_dim: int,
-    output_dim: int,
+    num_attributes: int,
     comp_noise_type: str,
     comp_noise: float,
     algo: str,
@@ -55,9 +56,9 @@ def pbo_trial(
     )
 
     if restart:
-        # Check if training data is already available
+        # check if training data is available
         try:
-            # Current available evaluations
+            # current available iterations
             queries = np.loadtxt(
                 results_folder + "queries/queries_" + str(trial) + ".txt"
             )
@@ -65,11 +66,11 @@ def pbo_trial(
                 queries.shape[0], batch_size, int(queries.shape[1] / batch_size)
             )
             queries = torch.tensor(queries)
-            obj_vals = torch.tensor(
-                np.loadtxt(results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt")
+            attribute_vals = torch.tensor(
+                np.loadtxt(results_folder + "attribute_vals/attribute_vals_" + str(trial) + ".txt")
             )
-            obj_vals = obj_vals.reshape(
-                obj_vals.shape[0], batch_size, int(obj_vals.shape[1] / batch_size)
+            attribute_vals = attribute_vals.reshape(
+                attribute_vals.shape[0], batch_size, int(attribute_vals.shape[1] / batch_size)
             )
             utility_vals = torch.tensor(
                 np.loadtxt(
@@ -81,7 +82,7 @@ def pbo_trial(
                     results_folder + "responses/responses_" + str(trial) + ".txt"
                 )
             )
-            # Historical max objective within queries
+            # historical max utility values within queries
             max_utility_vals_within_queries = list(
                 np.loadtxt(
                     results_folder
@@ -90,7 +91,7 @@ def pbo_trial(
                     + ".txt"
                 )
             )
-            # Historical objective values at the maximum of the posterior mean
+            # historical utility values at the maximum of the posterior mean
             utility_vals_at_max_post_mean = list(
                 np.loadtxt(
                     results_folder
@@ -99,7 +100,7 @@ def pbo_trial(
                     + ".txt"
                 )
             )
-            # Historical acquisition runtimes
+            # historical acquisition runtimes
             runtimes = list(
                 np.atleast_1d(
                     np.loadtxt(
@@ -108,7 +109,7 @@ def pbo_trial(
                 )
             )
 
-            # Fit GP model
+            # fit model
             t0 = time.time()
             model = fit_model(
                 queries,
@@ -123,12 +124,12 @@ def pbo_trial(
             print("Restarting experiment from available data.")
 
         except:
-            # Initial data
-            queries, obj_vals, utility_vals, responses = generate_initial_data(
+            # initial data
+            queries, attribute_vals, utility_vals, responses = generate_initial_data(
                 num_queries=num_init_queries,
                 batch_size=batch_size,
                 input_dim=input_dim,
-                obj_func=obj_func,
+                attribute_func=attribute_func,
                 utility_func=utility_func,
                 comp_noise_type=comp_noise_type,
                 comp_noise=comp_noise,
@@ -136,7 +137,7 @@ def pbo_trial(
                 seed=trial,
             )
 
-            # Fit GP model
+            # fit model
             t0 = time.time()
             model = fit_model(
                 queries,
@@ -147,9 +148,9 @@ def pbo_trial(
             t1 = time.time()
             model_training_time = t1 - t0
 
-            # Historical objective values at the maximum of the posterior mean
+            # historical utility values at the maximum of the posterior mean
             utility_val_at_max_post_mean = compute_utility_val_at_max_post_mean(
-                obj_func=obj_func,
+                attribute_func=attribute_func,
                 utility_func=utility_func,
                 model=model,
                 model_type=model_type,
@@ -157,7 +158,7 @@ def pbo_trial(
             )
             utility_vals_at_max_post_mean = [utility_val_at_max_post_mean]
 
-            # Historical max objective values within queries and runtimes
+            # historical max utility values within queries and runtimes
             max_utility_val_within_queries = utility_vals.max().item()
             max_utility_vals_within_queries = [max_utility_val_within_queries]
 
@@ -166,12 +167,12 @@ def pbo_trial(
 
             iteration = 0
     else:
-        # Initial data
-        queries, obj_vals, utility_vals, responses = generate_initial_data(
+        # initial data
+        queries, attribute_vals, utility_vals, responses = generate_initial_data(
             num_queries=num_init_queries,
             batch_size=batch_size,
             input_dim=input_dim,
-            obj_func=obj_func,
+            attribute_func=attribute_func,
             utility_func=utility_func,
             comp_noise_type=comp_noise_type,
             comp_noise=comp_noise,
@@ -179,7 +180,7 @@ def pbo_trial(
             seed=trial,
         )
 
-        # Fit GP model
+        # fit model
         t0 = time.time()
         model = fit_model(
             queries,
@@ -190,9 +191,9 @@ def pbo_trial(
         t1 = time.time()
         model_training_time = t1 - t0
 
-        # Historical objective values at the maximum of the posterior mean
+        # historical utility values at the maximum of the posterior mean
         utility_val_at_max_post_mean = compute_utility_val_at_max_post_mean(
-            obj_func=obj_func,
+            attribute_func=attribute_func,
             utility_func=utility_func,
             model=model,
             model_type=model_type,
@@ -200,11 +201,11 @@ def pbo_trial(
         )
         utility_vals_at_max_post_mean = [utility_val_at_max_post_mean]
 
-        # Historical max objective values within queries and runtimes
+        # historical max utility values within queries and runtimes
         max_utility_val_within_queries = utility_vals.max().item()
         max_utility_vals_within_queries = [max_utility_val_within_queries]
 
-        # Historical acquisition runtimes
+        # historical acquisition runtimes
         runtimes = []
 
         iteration = 0
@@ -216,7 +217,7 @@ def pbo_trial(
         print("Trial: " + str(trial))
         print("Iteration: " + str(iteration))
 
-        # New suggested query
+        # new suggested query
         t0 = time.time()
         new_query = get_new_suggested_query(
             algo=algo,
@@ -225,32 +226,31 @@ def pbo_trial(
             batch_size=batch_size,
             input_dim=input_dim,
             algo_params=algo_params,
-            comp_noise=comp_noise,
             model_type=model_type,
         )
         t1 = time.time()
         acquisition_time = t1 - t0
         runtimes.append(acquisition_time + model_training_time)
 
-        # Get response at new query
+        # get response at new query
         (
-            new_obj_vals,
+            new_attribute_vals,
             new_utility_val,
-        ) = get_obj_and_utility_vals(new_query, obj_func, utility_func)
+        ) = get_attribute_and_utility_vals(new_query, attribute_func, utility_func)
         new_responses = generate_responses(
-            new_obj_vals,
+            new_attribute_vals,
             new_utility_val,
             noise_type=comp_noise_type,
             noise_level=comp_noise,
         )
 
-        # Update training data
+        # update training data ()
         queries = torch.cat((queries, new_query))
-        obj_vals = torch.cat([obj_vals, new_obj_vals], 0)
+        attribute_vals = torch.cat([attribute_vals, new_attribute_vals], 0)
         utility_vals = torch.cat([utility_vals, new_utility_val], 0)
         responses = torch.cat((responses, new_responses))
 
-        # Fit GP model
+        # fit model
         t0 = time.time()
         model = fit_model(
             queries,
@@ -258,14 +258,12 @@ def pbo_trial(
             model_type=model_type,
             likelihood=comp_noise_type,
         )
-        # lambd = 1.0 / model.covar_module.outputscale.item()
-        # print("Current estimate of lambda: " + str(lambd))
         t1 = time.time()
         model_training_time = t1 - t0
 
-        # Append current objective value at the maximum of the posterior mean
+        # compute and append current utility value at the maximum of the posterior mean
         utility_val_at_max_post_mean = compute_utility_val_at_max_post_mean(
-            obj_func=obj_func,
+            attribute_func=attribute_func,
             utility_func=utility_func,
             model=model,
             model_type=model_type,
@@ -277,20 +275,20 @@ def pbo_trial(
             + str(utility_val_at_max_post_mean)
         )
 
-        # Append current max objective val within queries
+        # append current max utility val within queries
         max_utility_val_within_queries = utility_vals.max().item()
         max_utility_vals_within_queries.append(max_utility_val_within_queries)
         print(
             "Max utility value within queries: " + str(max_utility_val_within_queries)
         )
 
-        # Save data
+        # save data
         if not os.path.exists(results_folder):
             os.makedirs(results_folder)
         if not os.path.exists(results_folder + "queries/"):
             os.makedirs(results_folder + "queries/")
-        if not os.path.exists(results_folder + "obj_vals/"):
-            os.makedirs(results_folder + "obj_vals/")
+        if not os.path.exists(results_folder + "attribute_vals/"):
+            os.makedirs(results_folder + "attribute_vals/")
         if not os.path.exists(results_folder + "utility_vals/"):
             os.makedirs(results_folder + "utility_vals/")
         if not os.path.exists(results_folder + "responses/"):
@@ -302,8 +300,8 @@ def pbo_trial(
         np.savetxt(
             results_folder + "queries/queries_" + str(trial) + ".txt", queries_reshaped
         )
-        obj_vals_reshaped = obj_vals.numpy().reshape(obj_vals.shape[0], -1)
-        np.savetxt(results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt", obj_vals_reshaped)
+        attribute_vals_reshaped = attribute_vals.numpy().reshape(attribute_vals.shape[0], -1)
+        np.savetxt(results_folder + "attribute_vals/attribute_vals_" + str(trial) + ".txt", attribute_vals_reshaped)
         np.savetxt(
             results_folder + "utility_vals/utility_vals_" + str(trial) + ".txt",
             utility_vals.numpy(),
@@ -325,14 +323,13 @@ def pbo_trial(
             np.atleast_1d(max_utility_vals_within_queries),
         )
 
-
+# computes the new query to be shown to the DM
 def get_new_suggested_query(
     algo: str,
     model: Model,
     utility_func: Callable,
     batch_size,
     input_dim: int,
-    comp_noise: float,
     model_type: str,
     algo_params: Optional[Dict] = None,
 ) -> Tensor:
@@ -378,9 +375,9 @@ def get_new_suggested_query(
     new_query = new_query.unsqueeze(0)
     return new_query
 
-
+# computes the (true underlying) utility value at the maximum of the posterior mean
 def compute_utility_val_at_max_post_mean(
-    obj_func: Callable,
+    attribute_func: Callable,
     utility_func: Callable,
     model: Model,
     model_type,
@@ -411,6 +408,6 @@ def compute_utility_val_at_max_post_mean(
     )
 
     utility_val_at_max_post_mean_func = utility_func(
-        obj_func(max_post_mean_func)
+        attribute_func(max_post_mean_func)
     ).item()
     return utility_val_at_max_post_mean_func

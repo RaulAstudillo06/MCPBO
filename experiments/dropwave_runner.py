@@ -19,15 +19,15 @@ sys.path.append(script_dir[:-12])
 from src.experiment_manager import experiment_manager
 
 
-# Objective function
+# attribute and utility functions
 input_dim = 2
-output_dim = 1
+num_attributes = 1
 
 
-def obj_func(X: Tensor) -> Tensor:
+def attribute_func(X: Tensor) -> Tensor:
     X_unscaled = 10.24 * X - 5.12
     input_shape = X_unscaled.shape
-    output = torch.empty(input_shape[:-1] + torch.Size([output_dim]))
+    output = torch.empty(input_shape[:-1] + torch.Size([num_attributes]))
     norm_X = torch.norm(X_unscaled, dim=-1)
     output[..., 0] = norm_X
     return output
@@ -39,15 +39,15 @@ def utility_func(Y: Tensor) -> Tensor:
     return output
 
 
-# Algos
+# algorithm
 algo = "qEUBO"
 model_type = "Composite"
 
-# estimate noise level
+# set noise level
 comp_noise_type = "logit"
 noise_level = 0.0001
 
-# Run experiment
+# run experiment
 if len(sys.argv) == 3:
     first_trial = int(sys.argv[1])
     last_trial = int(sys.argv[2])
@@ -57,17 +57,17 @@ elif len(sys.argv) == 2:
 
 experiment_manager(
     problem="dropwave",
-    obj_func=obj_func,
+    attribute_func=attribute_func,
     utility_func=utility_func,
     input_dim=input_dim,
-    output_dim=output_dim,
+    num_attributes=num_attributes,
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,
     model_type=model_type,
     batch_size=2,
     num_init_queries=4 * input_dim,
-    num_algo_iter=10,
+    num_algo_iter=2,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,
