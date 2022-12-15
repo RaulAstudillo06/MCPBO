@@ -21,8 +21,7 @@ def experiment_manager(
     first_trial: int, # first trial id to be ran
     last_trial: int, # last trial id to be ran
     restart: bool, # if True, this will try to restart the experiment from existing data
-    model_type: str = "Standard", # type of model ("Standard" and "Composite" are supported)
-    add_baseline_point: bool = False, # ignore this for now
+    model_type: str, # type of model ("Standard" and "Composite" are supported)
     ignore_failures: bool = False, # ignore this for now
     algo_params: Optional[Dict] = None, # ignore this for now 
 ) -> None:
@@ -45,6 +44,5 @@ def experiment_manager(
             trial=trial,
             restart=restart,
             model_type=model_type,
-            add_baseline_point=add_baseline_point,
             ignore_failures=ignore_failures,
         )

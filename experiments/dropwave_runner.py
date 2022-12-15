@@ -13,7 +13,6 @@ torch.autograd.set_detect_anomaly(True)
 debug._set_state(False)
 
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.experiment_manager import experiment_manager
@@ -67,7 +66,7 @@ experiment_manager(
     model_type=model_type,
     batch_size=2,
     num_init_queries=4 * input_dim,
-    num_algo_iter=2,
+    num_algo_iter=50,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,

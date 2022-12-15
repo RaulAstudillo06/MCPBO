@@ -41,7 +41,6 @@ def mcpbo_trial(
     trial: int,
     restart: bool,
     model_type: str,
-    add_baseline_point: bool,
     ignore_failures: bool,
     algo_params: Optional[Dict] = None,
 ) -> None:
@@ -133,7 +132,6 @@ def mcpbo_trial(
                 utility_func=utility_func,
                 comp_noise_type=comp_noise_type,
                 comp_noise=comp_noise,
-                add_baseline_point=add_baseline_point,
                 seed=trial,
             )
 
@@ -176,7 +174,6 @@ def mcpbo_trial(
             utility_func=utility_func,
             comp_noise_type=comp_noise_type,
             comp_noise=comp_noise,
-            add_baseline_point=add_baseline_point,
             seed=trial,
         )
 

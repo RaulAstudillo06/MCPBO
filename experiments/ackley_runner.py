@@ -13,7 +13,6 @@ torch.autograd.set_detect_anomaly(True)
 debug._set_state(False)
 
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.experiment_manager import experiment_manager
@@ -25,12 +24,12 @@ b = 0.2
 c = 2 * math.pi
 
 input_dim = 6
-output_dim = 2
+num_attributes = 2
 
 
-def obj_func(X: Tensor) -> Tensor:
+def attribute_func(X: Tensor) -> Tensor:
     X_unnorm = 4.0 * X - 2.0
-    output = torch.zeros(X_unnorm.shape[:-1] + torch.Size([2]))
+    output = torch.zeros(X_unnorm.shape[:-1] + torch.Size([num_attributes]))
     for i in range(input_dim):
         output[..., 0] += X_unnorm[..., i] ** 2
         output[..., 1] += torch.cos(c * X_unnorm[..., i])
@@ -47,7 +46,7 @@ def utility_func(Y: Tensor) -> Tensor:
 
 # Algos
 algo = "qEUBO"
-model_type = "Composite"
+model_type = "Standard"
 
 # estimate noise level
 comp_noise_type = "logit"
@@ -63,10 +62,10 @@ elif len(sys.argv) == 2:
 
 experiment_manager(
     problem="ackley",
-    obj_func=obj_func,
+    attribute_func=attribute_func,
     utility_func=utility_func,
     input_dim=input_dim,
-    output_dim=output_dim,
+    num_attributes=num_attributes,
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,

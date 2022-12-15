@@ -3,7 +3,7 @@ from copy import deepcopy
 from typing import Union
 
 import torch
-from botorch.fit import fit_gpytorch_model
+from botorch.fit import fit_gpytorch_mll
 from botorch.models.gpytorch import GPyTorchModel
 from botorch.models.model import Model
 from botorch.utils.sampling import draw_sobol_samples
@@ -226,7 +226,7 @@ class PairwiseKernelVariationalGP(Model):
             model=self.aux_model,
             num_data=self.num_data,
         )
-        mll = fit_gpytorch_model(mll)
+        fit_gpytorch_mll(mll)
 
     def posterior(self, X: Tensor, posterior_transform=None) -> MultivariateNormal:
         X0 = torch.zeros(size=X.shape, requires_grad=False) + 0.5

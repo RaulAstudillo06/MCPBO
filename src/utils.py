@@ -17,16 +17,10 @@ def generate_initial_data(
     utility_func,
     comp_noise_type,
     comp_noise,
-    add_baseline_point: bool,
     seed: int = None,
 ):
-    # generate initial data
+    # generates initial data
     queries = generate_random_queries(num_queries, batch_size, input_dim, seed)
-    if add_baseline_point:
-        queries_against_baseline = generate_queries_against_baseline(
-            100, batch_size, input_dim, attribute_func, seed
-        )
-        queries = torch.cat([queries, queries_against_baseline], dim=0)
     attribute_vals, utility_vals = get_attribute_and_utility_vals(queries, attribute_func, utility_func)
     responses = generate_responses(attribute_vals, utility_vals, comp_noise_type, comp_noise)
     return queries, attribute_vals, utility_vals, responses
@@ -35,7 +29,7 @@ def generate_initial_data(
 def generate_random_queries(
     num_queries: int, batch_size: int, input_dim: int, seed: int = None
 ):
-    # generate `num_queries` queries each constituted by `batch_size` points chosen uniformly at random
+    # generates `num_queries` queries each constituted by `batch_size` points chosen uniformly at random
     if seed is not None:
         old_state = torch.random.get_rng_state()
         torch.manual_seed(seed)
@@ -43,18 +37,6 @@ def generate_random_queries(
         torch.random.set_rng_state(old_state)
     else:
         queries = torch.rand([num_queries, batch_size, input_dim])
-    return queries
-
-
-def generate_queries_against_baseline(
-    num_queries: int, batch_size: int, input_dim: int, attribute_func, seed: int = None
-):
-    # generate `num_queries` queries each constituted by `batch_size` points chosen uniformly at random
-    best_point = torch.tensor(
-        [0.52] * input_dim
-    )
-    queries = generate_random_queries(num_queries, batch_size - 1, input_dim, seed + 2)
-    queries = torch.cat([best_point.expand_as(queries), queries], dim=1)
     return queries
 
 
@@ -75,7 +57,7 @@ def get_attribute_and_utility_vals(queries, attribute_func, utility_func):
 
 
 def generate_responses(attribute_vals, utility_vals, noise_type, noise_level):
-    # generate simulated comparisons based on true underlying attribute and utility values
+    # generates simulated (noisy) comparisons based on true underlying attribute and utility values
     corrupted_attribute_vals = corrupt_vals(attribute_vals, noise_type, noise_level)
     responses_attribute_vals = torch.argmax(corrupted_attribute_vals, dim=-2)
     corrupted_utility_vals = corrupt_vals(utility_vals, noise_type, noise_level)
@@ -85,6 +67,7 @@ def generate_responses(attribute_vals, utility_vals, noise_type, noise_level):
 
 
 def corrupt_vals(vals, noise_type, noise_level):
+    # corrupts (attribute or utility) values to simulate noise in the DM's responses
     if noise_type == "noiseless":
         corrupted_vals = vals
     elif noise_type == "probit":
