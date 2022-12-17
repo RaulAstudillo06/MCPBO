@@ -1,10 +1,12 @@
 from typing import Optional
 
 import torch
-from botorch.acquisition import AcquisitionFunction
-from botorch.generation.gen import get_best_candidates
 
+from botorch.acquisition import AcquisitionFunction, PosteriorMean, qSimpleRegret
+from botorch.generation.gen import get_best_candidates
+from botorch.models.model import Model
 from botorch.optim.optimize import optimize_acqf
+from botorch.sampling.samplers import SobolQMCNormalSampler
 from torch import Tensor
 from torch.distributions import Bernoulli, Normal, Gumbel
 
@@ -146,3 +148,28 @@ def optimize_acqf_and_get_suggested_query(
     # print(candidates.squeeze())
     new_x = get_best_candidates(batch_candidates=candidates, batch_values=acq_values)
     return new_x
+
+
+def compute_posterior_mean_maximizer(
+    model: Model,
+    model_type,
+    input_dim: int,
+) -> Tensor:
+
+    standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
+    num_restarts = 4 * input_dim
+    raw_samples = 120 * input_dim
+
+    if model_type == "Standard":
+        post_mean_func = PosteriorMean(model=model)
+    elif model_type == model_type == "Composite":
+        sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
+        post_mean_func = qSimpleRegret(model=model, sampler=sampler)
+    max_post_mean_func = optimize_acqf_and_get_suggested_query(
+        acq_func=post_mean_func,
+        bounds=standard_bounds,
+        batch_size=1,
+        num_restarts=num_restarts,
+        raw_samples=raw_samples,
+    )
+    return max_post_mean_func

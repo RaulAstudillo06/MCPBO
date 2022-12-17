@@ -22,6 +22,7 @@ from src.utils import (
     get_attribute_and_utility_vals,
     generate_responses,
     optimize_acqf_and_get_suggested_query,
+    compute_posterior_mean_maximizer
 )
 
 # this function runs a single trial of a given problem
@@ -47,7 +48,7 @@ def mcpbo_trial(
 
     algo_id = algo + "_" + model_type
 
-    # Get script directory
+    # get script directory
     script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
     project_path = script_dir[:-11]
     results_folder = (
@@ -241,7 +242,7 @@ def mcpbo_trial(
             noise_level=comp_noise,
         )
 
-        # update training data ()
+        # update training data
         queries = torch.cat((queries, new_query))
         attribute_vals = torch.cat([attribute_vals, new_attribute_vals], 0)
         utility_vals = torch.cat([utility_vals, new_utility_val], 0)
@@ -259,13 +260,10 @@ def mcpbo_trial(
         model_training_time = t1 - t0
 
         # compute and append current utility value at the maximum of the posterior mean
-        utility_val_at_max_post_mean = compute_utility_val_at_max_post_mean(
-            attribute_func=attribute_func,
-            utility_func=utility_func,
-            model=model,
-            model_type=model_type,
-            input_dim=input_dim,
-        )
+        posterior_mean_maximizer = compute_posterior_mean_maximizer(model=model, model_type=model_type, input_dim=input_dim)
+        utility_val_at_max_post_mean = utility_func(
+        attribute_func(posterior_mean_maximizer)
+        ).item()
         utility_vals_at_max_post_mean.append(utility_val_at_max_post_mean)
         print(
             "Utility value at the maximum of the posterior mean: "
@@ -324,7 +322,6 @@ def mcpbo_trial(
 def get_new_suggested_query(
     algo: str,
     model: Model,
-    utility_func: Callable,
     batch_size,
     input_dim: int,
     model_type: str,
@@ -347,6 +344,7 @@ def get_new_suggested_query(
                 model=model, sampler=sampler
             )
         elif model_type == "Known_Utility":
+            utility_func= algo_params["utility_function"]
             acqf_obejctive = GenericMCObjective(objective=utility_func)
             acquisition_function = qExpectedUtilityBestOption(
                 model=model,
@@ -371,40 +369,3 @@ def get_new_suggested_query(
 
     new_query = new_query.unsqueeze(0)
     return new_query
-
-# computes the (true underlying) utility value at the maximum of the posterior mean
-def compute_utility_val_at_max_post_mean(
-    attribute_func: Callable,
-    utility_func: Callable,
-    model: Model,
-    model_type,
-    input_dim: int,
-) -> Tensor:
-
-    standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
-    num_restarts = 4 * input_dim
-    raw_samples = 120 * input_dim
-
-    if model_type == "Standard":
-        post_mean_func = PosteriorMean(model=model)
-    elif model_type == "Known_Utility":
-        sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
-        acqf_objective = GenericMCObjective(objective=utility_func)
-        post_mean_func = qSimpleRegret(
-            model=model, objective=acqf_objective, sampler=sampler
-        )
-    elif model_type == model_type == "Composite":
-        sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
-        post_mean_func = qSimpleRegret(model=model, sampler=sampler)
-    max_post_mean_func = optimize_acqf_and_get_suggested_query(
-        acq_func=post_mean_func,
-        bounds=standard_bounds,
-        batch_size=1,
-        num_restarts=num_restarts,
-        raw_samples=raw_samples,
-    )
-
-    utility_val_at_max_post_mean_func = utility_func(
-        attribute_func(max_post_mean_func)
-    ).item()
-    return utility_val_at_max_post_mean_func
