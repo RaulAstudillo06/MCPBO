@@ -190,13 +190,10 @@ def mcpbo_trial(
         model_training_time = t1 - t0
 
         # historical utility values at the maximum of the posterior mean
-        utility_val_at_max_post_mean = compute_utility_val_at_max_post_mean(
-            attribute_func=attribute_func,
-            utility_func=utility_func,
-            model=model,
-            model_type=model_type,
-            input_dim=input_dim,
-        )
+        posterior_mean_maximizer = compute_posterior_mean_maximizer(model=model, model_type=model_type, input_dim=input_dim)
+        utility_val_at_max_post_mean = utility_func(
+        attribute_func(posterior_mean_maximizer)
+        ).item()
         utility_vals_at_max_post_mean = [utility_val_at_max_post_mean]
 
         # historical max utility values within queries and runtimes
@@ -220,7 +217,6 @@ def mcpbo_trial(
         new_query = get_new_suggested_query(
             algo=algo,
             model=model,
-            utility_func=utility_func,
             batch_size=batch_size,
             input_dim=input_dim,
             algo_params=algo_params,
