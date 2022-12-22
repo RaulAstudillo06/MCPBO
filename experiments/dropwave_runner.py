@@ -4,12 +4,11 @@ import sys
 import torch
 
 from botorch.settings import debug
-from botorch.test_functions.synthetic import Ackley
 
 from torch import Tensor
 
 torch.set_default_dtype(torch.float64)
-torch.autograd.set_detect_anomaly(True)
+#torch.autograd.set_detect_anomaly(True)
 debug._set_state(False)
 
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
