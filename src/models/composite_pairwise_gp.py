@@ -19,6 +19,7 @@ class CompositePairwiseGP(Model):
         queries,
         responses,
         use_attribute_uncertainty=True,
+        fit_model_flag=True,
     ) -> None:
         r""" """
         self.queries = queries
@@ -31,7 +32,7 @@ class CompositePairwiseGP(Model):
         lower_bounds = []
         upper_bounds = []
         for j in range(output_dim):
-            attribute_model = PairwiseKernelVariationalGP(queries, responses[..., j])
+            attribute_model = PairwiseKernelVariationalGP(queries, responses[..., j], fit_aux_model_flag=fit_model_flag)
             attribute_mean = attribute_model(queries).mean
             if self.use_attribute_uncertainty:
                 attribute_std = torch.sqrt(attribute_model(queries).variance)
@@ -54,7 +55,7 @@ class CompositePairwiseGP(Model):
         utility_queries = (attribute_means - self.lower_bounds) / (
             self.upper_bounds - self.lower_bounds
         )
-        utility_model = PairwiseKernelVariationalGP(utility_queries, responses[..., -1])
+        utility_model = PairwiseKernelVariationalGP(utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag)
         self.utility_model = [utility_model]
 
     @property

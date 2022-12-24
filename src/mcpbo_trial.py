@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from copy import deepcopy
 from typing import Callable, Dict, Optional
 
 import numpy as np
@@ -7,7 +8,6 @@ import os
 import sys
 import time
 import torch
-from botorch.acquisition import PosteriorMean, qSimpleRegret
 from botorch.acquisition.objective import GenericMCObjective
 from botorch.models.model import Model
 from botorch.sampling.samplers import SobolQMCNormalSampler
@@ -15,7 +15,7 @@ from torch import Tensor
 
 from src.acquisition_functions.eubo import qExpectedUtilityBestOption
 from src.acquisition_functions.thompson_sampling import gen_thompson_sampling_query
-from src.fit_model import fit_model
+from src.fit_model import fit_model, get_state_dict
 from src.utils import (
     generate_initial_data,
     generate_random_queries,
@@ -245,11 +245,13 @@ def mcpbo_trial(
         responses = torch.cat((responses, new_responses))
 
         # fit model
+        state_dict = get_state_dict(model=model, model_type=model_type)
         t0 = time.time()
         model = fit_model(
             queries,
             responses,
             model_type=model_type,
+            state_dict=state_dict,
             likelihood=comp_noise_type,
         )
         t1 = time.time()
