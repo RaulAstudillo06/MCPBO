@@ -16,7 +16,8 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.experiment_manager import experiment_manager
-from kumaraswamy_utility import KumaraswamyCDFProduct
+#from kumaraswamy_utility import KumaraswamyCDFProduct
+from piecewiselinear_utility import PiecewiseLinear
 
 
 # Objective function
@@ -38,22 +39,27 @@ def attribute_func(X: Tensor) -> Tensor:
     output = (output - attribute_bounds[0, :]) / (attribute_bounds[1, :] - attribute_bounds[0, :])
     return output
 
-normalized_attribute_bounds = torch.tensor(
-            [
-                [0, 0, 0],
-                [1, 1, 1],
-            ]
-        )
-concentration1 = torch.tensor([0.5, 1, 1.5])
-concentration2 = torch.tensor([1.0, 2.0, 3.0])
+#normalized_attribute_bounds = torch.tensor(
+            #[
+                #[0, 0, 0],
+                #[1, 1, 1],
+            #]
+        #)
+#concentration1 = torch.tensor([0.5, 1, 1.5])
+#concentration2 = torch.tensor([1.0, 2.0, 3.0])
 
-utility_func = KumaraswamyCDFProduct(
-                concentration1=concentration1, concentration2=concentration2, Y_bounds=normalized_attribute_bounds
-            )
+#utility_func = KumaraswamyCDFProduct(
+                #concentration1=concentration1, concentration2=concentration2, Y_bounds=normalized_attribute_bounds
+            #)
+
+beta1 = torch.tensor([2, 6, 8])
+beta2 = torch.tensor([1, 2, 2])
+thresholds = torch.tensor([0.5, 0.8, 0.8])
+utility_func = PiecewiseLinear(beta1=beta1, beta2=beta2, thresholds=thresholds)
 
 # Algos
 algo = "qEUBO"
-model_type = "Standard"
+model_type = "Composite"
 
 # estimate noise level
 comp_noise_type = "logit"
