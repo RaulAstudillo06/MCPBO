@@ -43,8 +43,10 @@ def attribute_func(X: Tensor) -> Tensor:
     output = torch.cat(output, dim=-1)
     return output
 
+target_vector = torch.tensor([-0.5826,  0.1094, -0.1175])
+
 def utility_func(Y: Tensor) -> Tensor:
-    output = Y.sum(dim=-1)
+    output = -((Y- target_vector)**2).sum(dim=-1)
     return output
 
 # Algos
