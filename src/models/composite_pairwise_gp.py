@@ -1,5 +1,6 @@
-import torch
+from typing import Optional, Tuple
 
+import torch
 from botorch.fit import fit_gpytorch_mll
 from botorch.models.likelihoods import PairwiseLogitLikelihood
 from botorch.models.model import Model
@@ -34,7 +35,9 @@ class CompositePairwiseGP(Model):
         upper_bounds = []
         for j in range(output_dim):
             # == Replace PairwiseKernelVariationalGP w/ variational_preferential_gp ===
-            attribute_model = PairwiseKernelVariationalGP(queries, responses[..., j], fit_aux_model_flag=fit_model_flag)
+            attribute_model = PairwiseKernelVariationalGP(
+                queries, responses[..., j], fit_aux_model_flag=fit_model_flag
+            )
             # print(f'Fitting attribute model {j} with VaritionalPreferentialGP')
             # attribute_model = VariationalPreferentialGP(queries, responses[..., j], use_withening=True)
             attribute_mean = attribute_model(queries).mean
@@ -59,9 +62,11 @@ class CompositePairwiseGP(Model):
         utility_queries = (attribute_means - self.lower_bounds) / (
             self.upper_bounds - self.lower_bounds
         )
-        utility_model = PairwiseKernelVariationalGP(utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag)
+        utility_model = PairwiseKernelVariationalGP(
+            utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag
+        )
         # utility_model = VariationalPreferentialGP(utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag)
-        
+
         self.utility_model = [utility_model]
 
     @property
@@ -93,11 +98,11 @@ class CompositePairwiseGP(Model):
             use_attribute_uncertainty=self.use_attribute_uncertainty,
         )
 
-    def forward(self, x: Tensor):
+    def forward(self, X: Tensor):
         return MultivariateNormalComposition(
             attribute_model=self.attribute_models,
             utility_model=self.utility_model,
-            X=x,
+            X=X,
             lower_bounds=self.lower_bounds,
             upper_bounds=self.upper_bounds,
             use_attribute_uncertainty=self.use_attribute_uncertainty,
@@ -132,16 +137,42 @@ class MultivariateNormalComposition(Posterior):
         return torch.double
 
     @property
-    def event_shape(self) -> torch.Size:
-        r"""The event shape (i.e. the shape of a single sample) of the posterior."""
+    def base_sample_shape(self) -> torch.Size:
+        r"""The base shape of the base samples expected in `rsample`.
+        Informs the sampler to produce base samples of shape
+        `sample_shape x base_sample_shape`.
+        """
         shape = list(self.X.shape)
         shape[-1] = len(self.attribute_models) + 1
         shape = torch.Size(shape)
         return shape
 
-    def rsample(self, sample_shape=torch.Size(), base_samples=None):
-        # t0 =  time.time()
-        # print(base_samples.shape)
+    @property
+    def batch_range(self) -> Tuple[int, int]:
+        r"""The t-batch range.
+        This is used in samplers to identify the t-batch component of the
+        `base_sample_shape`. The base samples are expanded over the t-batches to
+        provide consistency in the acquisition values, i.e., to ensure that a
+        candidate produces same value regardless of its position on the t-batch.
+        """
+        return (0, -2)
+
+    def rsample_from_base_samples(
+        self,
+        sample_shape: torch.Size,
+        base_samples: Tensor,
+    ) -> Tensor:
+        return self.rsample(sample_shape=sample_shape, base_samples=base_samples)
+
+    def rsample(
+        self,
+        sample_shape: Optional[torch.Size] = None,
+        base_samples: Optional[Tensor] = None,
+    ) -> Tensor:
+        if sample_shape is None:
+            sample_shape = torch.Size([1])
+        if base_samples.shape[: len(sample_shape)] != sample_shape:
+            raise RuntimeError("`sample_shape` disagrees with shape of `base_samples`.")
         attribute_samples = []
         for j, attribute_model in enumerate(self.attribute_models):
             attribute_multivariate_normal = attribute_model.posterior(self.X)
