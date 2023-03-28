@@ -6,7 +6,12 @@ from botorch.acquisition import AcquisitionFunction, PosteriorMean, qSimpleRegre
 from botorch.generation.gen import get_best_candidates
 from botorch.models.model import Model
 from botorch.optim.optimize import optimize_acqf
-from botorch.sampling.samplers import SobolQMCNormalSampler
+# ======================= NOTE: =======================
+# botorch < 0.8.0
+# from botorch.sampling.samplers import SobolQMCNormalSampler
+# botorch >= 0.8.0
+from botorch.sampling.normal import SobolQMCNormalSampler
+
 from torch import Tensor
 from torch.distributions import Bernoulli, Normal, Gumbel
 
@@ -163,7 +168,11 @@ def compute_posterior_mean_maximizer(
     if model_type == "Standard":
         post_mean_func = PosteriorMean(model=model)
     elif model_type == model_type == "Composite":
-        sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
+        # sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
+        # 
+        sampler = SobolQMCNormalSampler(sample_shape=torch.Size([64]))
+
+        # ==== TODO: check if this is the right way to do this ====
         post_mean_func = qSimpleRegret(model=model, sampler=sampler)
     max_post_mean_func = optimize_acqf_and_get_suggested_query(
         acq_func=post_mean_func,

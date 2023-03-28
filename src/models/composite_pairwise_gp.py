@@ -8,6 +8,7 @@ from botorch.posteriors import Posterior
 from torch import Tensor
 
 from src.models.pairwise_kernel_variational_gp import PairwiseKernelVariationalGP
+from src.models.variational_preferential_gp import VariationalPreferentialGP
 from src.utils import training_data_for_pairwise_gp
 
 
@@ -32,7 +33,10 @@ class CompositePairwiseGP(Model):
         lower_bounds = []
         upper_bounds = []
         for j in range(output_dim):
+            # == Replace PairwiseKernelVariationalGP w/ variational_preferential_gp ===
             attribute_model = PairwiseKernelVariationalGP(queries, responses[..., j], fit_aux_model_flag=fit_model_flag)
+            # print(f'Fitting attribute model {j} with VaritionalPreferentialGP')
+            # attribute_model = VariationalPreferentialGP(queries, responses[..., j], use_withening=True)
             attribute_mean = attribute_model(queries).mean
             if self.use_attribute_uncertainty:
                 attribute_std = torch.sqrt(attribute_model(queries).variance)
@@ -56,6 +60,8 @@ class CompositePairwiseGP(Model):
             self.upper_bounds - self.lower_bounds
         )
         utility_model = PairwiseKernelVariationalGP(utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag)
+        # utility_model = VariationalPreferentialGP(utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag)
+        
         self.utility_model = [utility_model]
 
     @property
@@ -77,6 +83,7 @@ class CompositePairwiseGP(Model):
             distributions over `q` points. Includes observation noise if
             specified.
         """
+
         return MultivariateNormalComposition(
             attribute_models=self.attribute_models,
             utility_model=self.utility_model,

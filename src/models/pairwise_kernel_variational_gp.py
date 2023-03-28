@@ -3,6 +3,8 @@ from copy import deepcopy
 from typing import Union
 
 import torch
+import botorch
+import gpytorch
 from botorch.fit import fit_gpytorch_mll
 from botorch.models.gpytorch import GPyTorchModel
 from botorch.models.model import Model
