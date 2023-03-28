@@ -6,7 +6,12 @@ import torch
 from botorch.acquisition import AcquisitionFunction, MCAcquisitionFunction
 from botorch.acquisition.objective import MCAcquisitionObjective
 from botorch.models.model import Model
-from botorch.sampling.samplers import MCSampler
+# ======================= NOTE: =======================
+# botorch version < 0.8.0
+# from botorch.sampling.samplers import MCSampler
+# botorch version >= 0.8.0
+from botorch.sampling.base import MCSampler
+from botorch.sampling.normal import NormalMCSampler
 from botorch.utils.transforms import (
     concatenate_pending_points,
     t_batch_mode_transform,
@@ -63,6 +68,7 @@ class qExpectedUtilityBestOption(MCAcquisitionFunction):
         self,
         model: Model,
         sampler: Optional[MCSampler] = None,
+        # sampler: Optional[NormalMCSampler] = None,
         objective: Optional[MCAcquisitionObjective] = None,
         X_pending: Optional[Tensor] = None,
     ) -> None:

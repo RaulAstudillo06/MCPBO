@@ -1,3 +1,4 @@
+#%%
 import math
 import os
 import sys
@@ -16,6 +17,9 @@ sys.path.append(script_dir[:-12])
 
 from src.experiment_manager import experiment_manager
 
+# == Run debugger ==
+first_trial = 0
+last_trial = 1
 
 # Objective function
 a = 20.0
@@ -46,6 +50,8 @@ def utility_func(Y: Tensor) -> Tensor:
 # Algos
 algo = "qEUBO"
 model_type = "Standard"
+# change model_type to "Composite" to run composite model
+# model_type = "Composite"
 
 # estimate noise level
 comp_noise_type = "logit"
@@ -76,3 +82,4 @@ experiment_manager(
     last_trial=last_trial,
     restart=False,
 )
+#%%

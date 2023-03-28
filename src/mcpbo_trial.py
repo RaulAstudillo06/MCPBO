@@ -10,7 +10,9 @@ import time
 import torch
 from botorch.acquisition.objective import GenericMCObjective
 from botorch.models.model import Model
-from botorch.sampling.samplers import SobolQMCNormalSampler
+# ======================= NOTE: =======================
+# from botorch.sampling.samplers import SobolQMCNormalSampler
+from botorch.sampling.normal import SobolQMCNormalSampler
 from torch import Tensor
 
 from src.acquisition_functions.eubo import qExpectedUtilityBestOption
@@ -333,7 +335,10 @@ def get_new_suggested_query(
             num_queries=1, batch_size=batch_size, input_dim=input_dim
         )
     elif algo == "qEUBO":
-        sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
+        # sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
+        sampler = SobolQMCNormalSampler(sample_shape=torch.Size([64]))
+
+        
         if model_type == "Standard" or model_type == "Composite":
             acquisition_function = qExpectedUtilityBestOption(
                 model=model, sampler=sampler
