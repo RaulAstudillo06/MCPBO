@@ -35,11 +35,12 @@ class CompositePairwiseGP(Model):
         upper_bounds = []
         for j in range(output_dim):
             # == Replace PairwiseKernelVariationalGP w/ variational_preferential_gp ===
-            attribute_model = PairwiseKernelVariationalGP(
-                queries, responses[..., j], fit_aux_model_flag=fit_model_flag
-            )
+            # attribute_model = PairwiseKernelVariationalGP(
+            #     queries, responses[..., j], fit_aux_model_flag=fit_model_flag
+            # )
+            attribute_model = VariationalPreferentialGP(queries, responses[..., j])
             # print(f'Fitting attribute model {j} with VaritionalPreferentialGP')
-            # attribute_model = VariationalPreferentialGP(queries, responses[..., j], use_withening=True)
+            
             attribute_mean = attribute_model(queries).mean
             if self.use_attribute_uncertainty:
                 attribute_std = torch.sqrt(attribute_model(queries).variance)
@@ -49,7 +50,7 @@ class CompositePairwiseGP(Model):
                 lower_bounds.append(attribute_mean.min().item())
                 upper_bounds.append(attribute_mean.max().item())
             attribute_models.append(attribute_model)
-            attribute_means.append(attribute_mean.detach())
+            attribute_means.append(attribute_mean.detach().unsqueeze(-1))
         self.lower_bounds = torch.as_tensor(lower_bounds).to(
             device=queries.device, dtype=queries.dtype
         )
@@ -58,14 +59,13 @@ class CompositePairwiseGP(Model):
         )
         self.attribute_models = attribute_models
         attribute_means = torch.cat(attribute_means, dim=-1)
-
         utility_queries = (attribute_means - self.lower_bounds) / (
             self.upper_bounds - self.lower_bounds
         )
-        utility_model = PairwiseKernelVariationalGP(
-            utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag
-        )
-        # utility_model = VariationalPreferentialGP(utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag)
+        # utility_model = PairwiseKernelVariationalGP(
+        #     utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag
+        # )
+        utility_model = VariationalPreferentialGP(utility_queries, responses[..., -1])
 
         self.utility_model = [utility_model]
 

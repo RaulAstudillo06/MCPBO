@@ -16,14 +16,19 @@ def fit_model(
     likelihood: Optional[str] = "probit",
 ):  
     for i in range(10):
-        try:
-            if model_type == "Standard":
-                model = PairwiseKernelVariationalGP(queries, responses[..., -1])
-            elif model_type == "Composite":
-                model = CompositePairwiseGP(queries, responses, use_attribute_uncertainty=True)
-            return model
-        except:
-            print("Number of failed attempts to train the model: " + str(i + 1))
+        # try:
+        #     if model_type == "Standard":
+        #         model = PairwiseKernelVariationalGP(queries, responses[..., -1])
+        #     elif model_type == "Composite":
+        #         model = CompositePairwiseGP(queries, responses, use_attribute_uncertainty=True)
+        #     return model
+        # except:
+        #     print("Number of failed attempts to train the model: " + str(i + 1))
+        if model_type == "Standard":
+            model = PairwiseKernelVariationalGP(queries, responses[..., -1])
+        elif model_type == "Composite":
+            model = CompositePairwiseGP(queries, responses, use_attribute_uncertainty=True)
+        return model
 
 
 def get_state_dict(model: Model, model_type: str):
