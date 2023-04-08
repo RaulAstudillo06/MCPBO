@@ -44,6 +44,7 @@ def fit_model(
                     use_attribute_uncertainty=True,
                     model_id=model_id,
                 )
+            return model
         except:
             print("Number of failed attempts to train the model: " + str(i + 1))
     return model
