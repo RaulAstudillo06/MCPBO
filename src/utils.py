@@ -31,7 +31,6 @@ def fit_model(
 ):
     for i in range(10):
         try:
-
             if model_type == "Standard":
                 if model_id == 1:
                     model = PairwiseKernelVariationalGP(queries, responses[..., -1])

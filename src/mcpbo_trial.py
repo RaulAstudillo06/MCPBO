@@ -386,15 +386,19 @@ def get_new_suggested_query(
                 model, batch_size, standard_bounds, num_restarts, raw_samples
             )
         elif model_type == "Composite":
-            return gen_composite_thompson_sampling_query(
-                queries,
-                responses,
-                batch_size,
-                standard_bounds,
-                num_restarts,
-                raw_samples,
-                model_id=model_id,
-            )
+            for i in range(10):
+                try:
+                    return gen_composite_thompson_sampling_query(
+                        queries,
+                        responses,
+                        batch_size,
+                        standard_bounds,
+                        num_restarts,
+                        raw_samples,
+                        model_id=model_id,
+                    )
+                except:
+                    print("Number of failed attempts to train the model: " + str(i + 1))
 
     new_query = optimize_acqf_and_get_suggested_query(
         acq_func=acquisition_function,
