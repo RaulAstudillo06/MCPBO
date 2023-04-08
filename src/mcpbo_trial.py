@@ -49,10 +49,11 @@ def mcpbo_trial(
     restart: bool,
     model_type: str,
     ignore_failures: bool,
+    model_id: int = 2,
     algo_params: Optional[Dict] = None,
 ) -> None:
 
-    algo_id = algo + "_" + model_type
+    algo_id = algo + "_" + model_type + "_" + str(model_id)
 
     # get script directory
     script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -128,6 +129,7 @@ def mcpbo_trial(
                 queries,
                 responses,
                 model_type=model_type,
+                model_id=model_id,
             )
             t1 = time.time()
             model_training_time = t1 - t0
@@ -154,6 +156,7 @@ def mcpbo_trial(
                 queries,
                 responses,
                 model_type=model_type,
+                model_id=model_id,
             )
             t1 = time.time()
             model_training_time = t1 - t0
@@ -194,6 +197,7 @@ def mcpbo_trial(
             queries,
             responses,
             model_type=model_type,
+            model_id=model_id,
         )
         t1 = time.time()
         model_training_time = t1 - t0
@@ -234,6 +238,7 @@ def mcpbo_trial(
             input_dim=input_dim,
             algo_params=algo_params,
             model_type=model_type,
+            model_id=model_id,
         )
         t1 = time.time()
         acquisition_time = t1 - t0
@@ -263,6 +268,7 @@ def mcpbo_trial(
             queries,
             responses,
             model_type=model_type,
+            model_id=model_id,
         )
         t1 = time.time()
         model_training_time = t1 - t0
@@ -343,6 +349,7 @@ def get_new_suggested_query(
     batch_size,
     input_dim: int,
     model_type: str,
+    model_id: int,
     algo_params: Optional[Dict] = None,
 ) -> Tensor:
 
@@ -386,6 +393,7 @@ def get_new_suggested_query(
                 standard_bounds,
                 num_restarts,
                 raw_samples,
+                model_id=model_id,
             )
 
     new_query = optimize_acqf_and_get_suggested_query(

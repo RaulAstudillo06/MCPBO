@@ -16,9 +16,9 @@ class CompositeVariationalPreferentialGP(Model):
         self,
         queries,
         responses,
+        model_id,
         use_attribute_uncertainty=True,
         fit_model=True,
-        model_id=1,
     ) -> None:
         r""" """
         self.queries = queries

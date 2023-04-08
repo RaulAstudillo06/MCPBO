@@ -27,7 +27,7 @@ def fit_model(
     queries: Tensor,
     responses: Tensor,
     model_type: str,
-    model_id: int = 2,
+    model_id: int,
 ):
     for i in range(10):
         try:

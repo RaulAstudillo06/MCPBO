@@ -18,7 +18,7 @@ def gen_composite_thompson_sampling_query(
     bounds,
     num_restarts,
     raw_samples,
-    model_id=2,
+    model_id,
 ):
     num_attributes = responses.shape[-1] - 1
     attribute_models = []
