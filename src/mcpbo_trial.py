@@ -10,25 +10,29 @@ import time
 import torch
 from botorch.acquisition.objective import GenericMCObjective
 from botorch.models.model import Model
+
 # ======================= NOTE: =======================
 # from botorch.sampling.samplers import SobolQMCNormalSampler
 from botorch.sampling.normal import SobolQMCNormalSampler
 from torch import Tensor
 
+from src.acquisition_functions.composite_thompson_sampling import (
+    gen_composite_thompson_sampling_query,
+)
 from src.acquisition_functions.eubo import qExpectedUtilityBestOption
 from src.acquisition_functions.thompson_sampling import gen_thompson_sampling_query
-from src.fit_model import fit_model, get_state_dict
 from src.utils import (
+    fit_model,
     generate_initial_data,
     generate_random_queries,
     get_attribute_and_utility_vals,
     generate_responses,
     optimize_acqf_and_get_suggested_query,
-    compute_posterior_mean_maximizer
+    compute_posterior_mean_maximizer,
 )
 
 # this function runs a single trial of a given problem
-# see more details about the arguments in experiment_manager.py 
+# see more details about the arguments in experiment_manager.py
 def mcpbo_trial(
     problem: str,
     attribute_func: Callable,
@@ -69,10 +73,17 @@ def mcpbo_trial(
             )
             queries = torch.tensor(queries)
             attribute_vals = torch.tensor(
-                np.loadtxt(results_folder + "attribute_vals/attribute_vals_" + str(trial) + ".txt")
+                np.loadtxt(
+                    results_folder
+                    + "attribute_vals/attribute_vals_"
+                    + str(trial)
+                    + ".txt"
+                )
             )
             attribute_vals = attribute_vals.reshape(
-                attribute_vals.shape[0], batch_size, int(attribute_vals.shape[1] / batch_size)
+                attribute_vals.shape[0],
+                batch_size,
+                int(attribute_vals.shape[1] / batch_size),
             )
             utility_vals = torch.tensor(
                 np.loadtxt(
@@ -117,7 +128,6 @@ def mcpbo_trial(
                 queries,
                 responses,
                 model_type=model_type,
-                likelihood=comp_noise_type,
             )
             t1 = time.time()
             model_training_time = t1 - t0
@@ -144,15 +154,16 @@ def mcpbo_trial(
                 queries,
                 responses,
                 model_type=model_type,
-                likelihood=comp_noise_type,
             )
             t1 = time.time()
             model_training_time = t1 - t0
 
             # historical utility values at the maximum of the posterior mean
-            posterior_mean_maximizer = compute_posterior_mean_maximizer(model=model, model_type=model_type, input_dim=input_dim)
+            posterior_mean_maximizer = compute_posterior_mean_maximizer(
+                model=model, model_type=model_type, input_dim=input_dim
+            )
             utility_val_at_max_post_mean = utility_func(
-            attribute_func(posterior_mean_maximizer)
+                attribute_func(posterior_mean_maximizer)
             ).item()
             utility_vals_at_max_post_mean = [utility_val_at_max_post_mean]
 
@@ -183,15 +194,16 @@ def mcpbo_trial(
             queries,
             responses,
             model_type=model_type,
-            likelihood=comp_noise_type,
         )
         t1 = time.time()
         model_training_time = t1 - t0
 
         # historical utility values at the maximum of the posterior mean
-        posterior_mean_maximizer = compute_posterior_mean_maximizer(model=model, model_type=model_type, input_dim=input_dim)
+        posterior_mean_maximizer = compute_posterior_mean_maximizer(
+            model=model, model_type=model_type, input_dim=input_dim
+        )
         utility_val_at_max_post_mean = utility_func(
-        attribute_func(posterior_mean_maximizer)
+            attribute_func(posterior_mean_maximizer)
         ).item()
         utility_vals_at_max_post_mean = [utility_val_at_max_post_mean]
 
@@ -215,6 +227,8 @@ def mcpbo_trial(
         t0 = time.time()
         new_query = get_new_suggested_query(
             algo=algo,
+            queries=queries,
+            responses=responses,
             model=model,
             batch_size=batch_size,
             input_dim=input_dim,
@@ -244,22 +258,21 @@ def mcpbo_trial(
         responses = torch.cat((responses, new_responses))
 
         # fit model
-        state_dict = get_state_dict(model=model, model_type=model_type)
         t0 = time.time()
         model = fit_model(
             queries,
             responses,
             model_type=model_type,
-            state_dict=state_dict,
-            likelihood=comp_noise_type,
         )
         t1 = time.time()
         model_training_time = t1 - t0
 
         # compute and append current utility value at the maximum of the posterior mean
-        posterior_mean_maximizer = compute_posterior_mean_maximizer(model=model, model_type=model_type, input_dim=input_dim)
+        posterior_mean_maximizer = compute_posterior_mean_maximizer(
+            model=model, model_type=model_type, input_dim=input_dim
+        )
         utility_val_at_max_post_mean = utility_func(
-        attribute_func(posterior_mean_maximizer)
+            attribute_func(posterior_mean_maximizer)
         ).item()
         utility_vals_at_max_post_mean.append(utility_val_at_max_post_mean)
         print(
@@ -292,8 +305,13 @@ def mcpbo_trial(
         np.savetxt(
             results_folder + "queries/queries_" + str(trial) + ".txt", queries_reshaped
         )
-        attribute_vals_reshaped = attribute_vals.numpy().reshape(attribute_vals.shape[0], -1)
-        np.savetxt(results_folder + "attribute_vals/attribute_vals_" + str(trial) + ".txt", attribute_vals_reshaped)
+        attribute_vals_reshaped = attribute_vals.numpy().reshape(
+            attribute_vals.shape[0], -1
+        )
+        np.savetxt(
+            results_folder + "attribute_vals/attribute_vals_" + str(trial) + ".txt",
+            attribute_vals_reshaped,
+        )
         np.savetxt(
             results_folder + "utility_vals/utility_vals_" + str(trial) + ".txt",
             utility_vals.numpy(),
@@ -315,9 +333,12 @@ def mcpbo_trial(
             np.atleast_1d(max_utility_vals_within_queries),
         )
 
+
 # computes the new query to be shown to the DM
 def get_new_suggested_query(
     algo: str,
+    queries: Tensor,
+    responses: Tensor,
     model: Model,
     batch_size,
     input_dim: int,
@@ -338,13 +359,12 @@ def get_new_suggested_query(
         # sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
         sampler = SobolQMCNormalSampler(sample_shape=torch.Size([64]))
 
-        
         if model_type == "Standard" or model_type == "Composite":
             acquisition_function = qExpectedUtilityBestOption(
                 model=model, sampler=sampler
             )
         elif model_type == "Known_Utility":
-            utility_func= algo_params["utility_function"]
+            utility_func = algo_params["utility_function"]
             acqf_obejctive = GenericMCObjective(objective=utility_func)
             acquisition_function = qExpectedUtilityBestOption(
                 model=model,
@@ -354,9 +374,19 @@ def get_new_suggested_query(
 
     elif algo == "qTS":
         standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
-        return gen_thompson_sampling_query(
-            model, batch_size, standard_bounds, num_restarts, raw_samples
-        )
+        if model_type == "Standard":
+            return gen_thompson_sampling_query(
+                model, batch_size, standard_bounds, num_restarts, raw_samples
+            )
+        elif model_type == "Composite":
+            return gen_composite_thompson_sampling_query(
+                queries,
+                responses,
+                batch_size,
+                standard_bounds,
+                num_restarts,
+                raw_samples,
+            )
 
     new_query = optimize_acqf_and_get_suggested_query(
         acq_func=acquisition_function,

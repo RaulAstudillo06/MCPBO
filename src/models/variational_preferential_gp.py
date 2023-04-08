@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Optional
 
 import torch
+from botorch.fit import fit_gpytorch_mll
+from gpytorch.mlls.variational_elbo import VariationalELBO
 from botorch.models.gpytorch import GPyTorchModel
 from botorch.utils.sampling import draw_sobol_samples
 from gpytorch.distributions import MultivariateNormal
@@ -30,6 +32,7 @@ class VariationalPreferentialGP(GPyTorchModel, ApproximateGP):
         queries: Tensor,
         responses: Tensor,
         use_withening: bool = True,
+        fit_model: bool = True,
         covar_module: Optional[Kernel] = None,
     ) -> None:
         r"""
@@ -100,6 +103,21 @@ class VariationalPreferentialGP(GPyTorchModel, ApproximateGP):
         self._num_outputs = 1
         self.train_inputs = (train_x,)
         self.train_targets = train_y
+
+        if fit_model:
+            self._fit_model()
+
+    def _fit_model(self) -> None:
+        self.train()
+        self.likelihood.train()
+        mll = VariationalELBO(
+            likelihood=self.likelihood,
+            model=self,
+            num_data=2 * self.num_data,
+        )
+        mll = fit_gpytorch_mll(mll)
+        self.eval()
+        self.likelihood.eval()
 
     def forward(self, X: Tensor) -> MultivariateNormal:
         mean_X = self.mean_module(X)

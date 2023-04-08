@@ -6,6 +6,7 @@ from botorch.acquisition import AcquisitionFunction, PosteriorMean, qSimpleRegre
 from botorch.generation.gen import get_best_candidates
 from botorch.models.model import Model
 from botorch.optim.optimize import optimize_acqf
+
 # ======================= NOTE: =======================
 # botorch < 0.8.0
 # from botorch.sampling.samplers import SobolQMCNormalSampler
@@ -14,6 +15,38 @@ from botorch.sampling.normal import SobolQMCNormalSampler
 
 from torch import Tensor
 from torch.distributions import Bernoulli, Normal, Gumbel
+
+from src.models.composite_variational_preferential_gp import (
+    CompositeVariationalPreferentialGP,
+)
+from src.models.variational_preferential_gp import VariationalPreferentialGP
+from src.models.pairwise_kernel_variational_gp import PairwiseKernelVariationalGP
+
+
+def fit_model(
+    queries: Tensor,
+    responses: Tensor,
+    model_type: str,
+    model_id: int = 2,
+):
+    for i in range(10):
+        try:
+
+            if model_type == "Standard":
+                if model_id == 1:
+                    model = PairwiseKernelVariationalGP(queries, responses[..., -1])
+                elif model_id == 2:
+                    model = VariationalPreferentialGP(queries, responses[..., -1])
+            elif model_type == "Composite":
+                model = CompositeVariationalPreferentialGP(
+                    queries,
+                    responses,
+                    use_attribute_uncertainty=True,
+                    model_id=model_id,
+                )
+        except:
+            print("Number of failed attempts to train the model: " + str(i + 1))
+    return model
 
 
 def generate_initial_data(
@@ -28,8 +61,12 @@ def generate_initial_data(
 ):
     # generates initial data
     queries = generate_random_queries(num_queries, batch_size, input_dim, seed)
-    attribute_vals, utility_vals = get_attribute_and_utility_vals(queries, attribute_func, utility_func)
-    responses = generate_responses(attribute_vals, utility_vals, comp_noise_type, comp_noise)
+    attribute_vals, utility_vals = get_attribute_and_utility_vals(
+        queries, attribute_func, utility_func
+    )
+    responses = generate_responses(
+        attribute_vals, utility_vals, comp_noise_type, comp_noise
+    )
     return queries, attribute_vals, utility_vals, responses
 
 
@@ -69,7 +106,9 @@ def generate_responses(attribute_vals, utility_vals, noise_type, noise_level):
     responses_attribute_vals = torch.argmax(corrupted_attribute_vals, dim=-2)
     corrupted_utility_vals = corrupt_vals(utility_vals, noise_type, noise_level)
     response_utility = torch.argmax(corrupted_utility_vals, dim=-1)
-    responses = torch.cat([responses_attribute_vals, response_utility.unsqueeze(-1)], dim=-1)
+    responses = torch.cat(
+        [responses_attribute_vals, response_utility.unsqueeze(-1)], dim=-1
+    )
     return responses
 
 
@@ -169,7 +208,7 @@ def compute_posterior_mean_maximizer(
         post_mean_func = PosteriorMean(model=model)
     elif model_type == model_type == "Composite":
         # sampler = SobolQMCNormalSampler(num_samples=64, collapse_batch_dims=True)
-        # 
+        #
         sampler = SobolQMCNormalSampler(sample_shape=torch.Size([64]))
 
         # ==== TODO: check if this is the right way to do this ====

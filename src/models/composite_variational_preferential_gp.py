@@ -1,19 +1,15 @@
 from typing import Optional, Tuple
 
 import torch
-from botorch.fit import fit_gpytorch_mll
-from botorch.models.likelihoods import PairwiseLogitLikelihood
 from botorch.models.model import Model
-from botorch.models.pairwise_gp import PairwiseGP, PairwiseLaplaceMarginalLogLikelihood
 from botorch.posteriors import Posterior
 from torch import Tensor
 
 from src.models.pairwise_kernel_variational_gp import PairwiseKernelVariationalGP
 from src.models.variational_preferential_gp import VariationalPreferentialGP
-from src.utils import training_data_for_pairwise_gp
 
 
-class CompositePairwiseGP(Model):
+class CompositeVariationalPreferentialGP(Model):
     r""" """
 
     def __init__(
@@ -21,51 +17,59 @@ class CompositePairwiseGP(Model):
         queries,
         responses,
         use_attribute_uncertainty=True,
-        fit_model_flag=True,
+        fit_model=True,
+        model_id=1,
     ) -> None:
         r""" """
         self.queries = queries
         self.responses = responses
         self.use_attribute_uncertainty = use_attribute_uncertainty
 
-        output_dim = responses.shape[-1] - 1
+        num_attributes = responses.shape[-1] - 1
         attribute_models = []
         attribute_means = []
-        lower_bounds = []
-        upper_bounds = []
-        for j in range(output_dim):
-            # == Replace PairwiseKernelVariationalGP w/ variational_preferential_gp ===
-            # attribute_model = PairwiseKernelVariationalGP(
-            #     queries, responses[..., j], fit_aux_model_flag=fit_model_flag
-            # )
-            attribute_model = VariationalPreferentialGP(queries, responses[..., j])
-            # print(f'Fitting attribute model {j} with VaritionalPreferentialGP')
-            
-            attribute_mean = attribute_model(queries).mean
+        attribute_lower_bounds = []
+        attribute_upper_bounds = []
+
+        for j in range(num_attributes):
+            if model_id == 1:
+                attribute_model = PairwiseKernelVariationalGP(
+                    queries, responses[..., j]
+                )
+            elif model_id == 2:
+                attribute_model = VariationalPreferentialGP(queries, responses[..., j])
+
+            attribute_posterior = attribute_model.posterior(queries)
+            attribute_mean = attribute_posterior.mean.detach()
             if self.use_attribute_uncertainty:
-                attribute_std = torch.sqrt(attribute_model(queries).variance)
-                lower_bounds.append((attribute_mean - attribute_std).min().item())
-                upper_bounds.append((attribute_mean + attribute_std).max().item())
+                attribute_std = torch.sqrt(attribute_posterior.variance.detach())
+                attribute_lower_bounds.append((attribute_mean - attribute_std).min())
+                attribute_upper_bounds.append((attribute_mean + attribute_std).max())
             else:
-                lower_bounds.append(attribute_mean.min().item())
-                upper_bounds.append(attribute_mean.max().item())
+                attribute_lower_bounds.append(attribute_mean.min())
+                attribute_upper_bounds.append(attribute_mean.max())
             attribute_models.append(attribute_model)
-            attribute_means.append(attribute_mean.detach().unsqueeze(-1))
-        self.lower_bounds = torch.as_tensor(lower_bounds).to(
-            device=queries.device, dtype=queries.dtype
-        )
-        self.upper_bounds = torch.as_tensor(upper_bounds).to(
-            device=queries.device, dtype=queries.dtype
-        )
+            attribute_means.append(attribute_mean)
         self.attribute_models = attribute_models
-        attribute_means = torch.cat(attribute_means, dim=-1)
-        utility_queries = (attribute_means - self.lower_bounds) / (
-            self.upper_bounds - self.lower_bounds
+        self.attribute_lower_bounds = torch.as_tensor(attribute_lower_bounds).to(
+            device=queries.device, dtype=queries.dtype
         )
-        # utility_model = PairwiseKernelVariationalGP(
-        #     utility_queries, responses[..., -1], fit_aux_model_flag=fit_model_flag
-        # )
-        utility_model = VariationalPreferentialGP(utility_queries, responses[..., -1])
+        self.attribute_upper_bounds = torch.as_tensor(attribute_upper_bounds).to(
+            device=queries.device, dtype=queries.dtype
+        )
+        utility_queries = torch.cat(attribute_means, dim=-1)
+        utility_queries = (utility_queries - self.attribute_lower_bounds) / (
+            self.attribute_upper_bounds - self.attribute_lower_bounds
+        )
+
+        if model_id == 1:
+            utility_model = PairwiseKernelVariationalGP(
+                utility_queries, responses[..., -1]
+            )
+        elif model_id == 2:
+            utility_model = VariationalPreferentialGP(
+                utility_queries, responses[..., -1]
+            )
 
         self.utility_model = [utility_model]
 
@@ -93,8 +97,8 @@ class CompositePairwiseGP(Model):
             attribute_models=self.attribute_models,
             utility_model=self.utility_model,
             X=X,
-            lower_bounds=self.lower_bounds,
-            upper_bounds=self.upper_bounds,
+            attribute_lower_bounds=self.attribute_lower_bounds,
+            attribute_upper_bounds=self.attribute_upper_bounds,
             use_attribute_uncertainty=self.use_attribute_uncertainty,
         )
 
@@ -103,8 +107,8 @@ class CompositePairwiseGP(Model):
             attribute_model=self.attribute_models,
             utility_model=self.utility_model,
             X=X,
-            lower_bounds=self.lower_bounds,
-            upper_bounds=self.upper_bounds,
+            attribute_lower_bounds=self.attribute_lower_bounds,
+            attribute_upper_bounds=self.attribute_upper_bounds,
             use_attribute_uncertainty=self.use_attribute_uncertainty,
         )
 
@@ -115,15 +119,15 @@ class MultivariateNormalComposition(Posterior):
         attribute_models,
         utility_model,
         X,
-        lower_bounds,
-        upper_bounds,
+        attribute_lower_bounds,
+        attribute_upper_bounds,
         use_attribute_uncertainty=True,
     ):
         self.attribute_models = attribute_models
         self.utility_model = utility_model
         self.X = X
-        self.lower_bounds = lower_bounds
-        self.upper_bounds = upper_bounds
+        self.attribute_lower_bounds = attribute_lower_bounds
+        self.attribute_upper_bounds = attribute_upper_bounds
         self.use_attribute_uncertainty = use_attribute_uncertainty
 
     @property
@@ -192,9 +196,9 @@ class MultivariateNormalComposition(Posterior):
             else:
                 attribute_samples.append(attribute_multivariate_normal.mean)
         attribute_samples = torch.cat(attribute_samples, dim=-1)
-        normalized_attribute_samples = (attribute_samples - self.lower_bounds) / (
-            self.upper_bounds - self.lower_bounds
-        )
+        normalized_attribute_samples = (
+            attribute_samples - self.attribute_lower_bounds
+        ) / (self.attribute_upper_bounds - self.attribute_lower_bounds)
         utility_multivariate_normal = self.utility_model[0].posterior(
             normalized_attribute_samples
         )

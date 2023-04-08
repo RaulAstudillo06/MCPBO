@@ -199,9 +199,6 @@ class PairwiseKernelVariationalGP(Model):
         super().__init__()
         self.queries = queries
         self.responses = responses
-        self.train_inputs = None
-        self.train_targets = None
-        self.covar_module = None
         self.input_dim = queries.shape[-1]
         train_x = queries.flatten(start_dim=-2, end_dim=-1)
         train_y = 1.0 - responses.squeeze(-1)
@@ -221,6 +218,9 @@ class PairwiseKernelVariationalGP(Model):
         self.aux_model = aux_model
         if fit_aux_model_flag:
             self.fit_aux_model()
+        self.train_inputs = None
+        self.train_targets = None
+        self.covar_module = None
 
     def fit_aux_model(self) -> None:
         mll = VariationalELBO(

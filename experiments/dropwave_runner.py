@@ -8,7 +8,7 @@ from botorch.settings import debug
 from torch import Tensor
 
 torch.set_default_dtype(torch.float64)
-#torch.autograd.set_detect_anomaly(True)
+# torch.autograd.set_detect_anomaly(True)
 debug._set_state(False)
 
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -32,7 +32,7 @@ def attribute_func(X: Tensor) -> Tensor:
 
 
 def utility_func(Y: Tensor) -> Tensor:
-    output = (1.0 + torch.cos(12.0 * Y)) /(2.0 + 0.5 * (Y ** 2))
+    output = (1.0 + torch.cos(12.0 * Y)) / (2.0 + 0.5 * (Y**2))
     output = output.squeeze(dim=-1)
     return output
 
