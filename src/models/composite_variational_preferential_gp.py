@@ -17,7 +17,7 @@ class CompositeVariationalPreferentialGP(Model):
         queries,
         responses,
         model_id,
-        use_attribute_uncertainty=True,
+        use_attribute_uncertainty=False,
         fit_model=True,
     ) -> None:
         r""" """
@@ -41,6 +41,7 @@ class CompositeVariationalPreferentialGP(Model):
 
             attribute_posterior = attribute_model.posterior(queries)
             attribute_mean = attribute_posterior.mean.detach()
+
             if self.use_attribute_uncertainty:
                 attribute_std = torch.sqrt(attribute_posterior.variance.detach())
                 attribute_lower_bounds.append((attribute_mean - attribute_std).min())
