@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import copy
 import torch
 
 from src.acquisition_functions.composite_posterior_mean import CompositePosteriorMean
@@ -19,6 +20,7 @@ def gen_composite_thompson_sampling_query(
     num_restarts,
     raw_samples,
     model_id,
+    use_attribute_uncertainty=False,
 ):
     num_attributes = responses.shape[-1] - 1
     attribute_models = []
@@ -39,9 +41,12 @@ def gen_composite_thompson_sampling_query(
         attribute_upper_bounds = []
 
         for attribute_model in attribute_models:
-            attribute_sample = get_pairwise_gp_rff_sample(
-                model=attribute_model, n_samples=1
-            )
+            if use_attribute_uncertainty:
+                attribute_sample = get_pairwise_gp_rff_sample(
+                    model=attribute_model, n_samples=1
+                )
+            else:
+                attribute_sample = copy(attribute_model)
             attribute_sample_vals_at_queries = attribute_sample.posterior(
                 queries
             ).mean.detach()
@@ -60,6 +65,7 @@ def gen_composite_thompson_sampling_query(
         utility_queries = (utility_queries - attribute_lower_bounds) / (
             attribute_upper_bounds - attribute_lower_bounds
         )
+
         if model_id == 1:
             utility_model = PairwiseKernelVariationalGP(
                 utility_queries, responses[..., -1]
