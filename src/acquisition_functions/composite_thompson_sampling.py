@@ -34,7 +34,7 @@ def gen_composite_thompson_sampling_query(
 
     query = []
 
-    for _ in range(num_alternatives):
+    for i in range(num_alternatives):
         attribute_samples = []
         utility_queries = []
         attribute_lower_bounds = []
@@ -66,14 +66,15 @@ def gen_composite_thompson_sampling_query(
             attribute_upper_bounds - attribute_lower_bounds
         )
 
-        if model_id == 1:
-            utility_model = PairwiseKernelVariationalGP(
-                utility_queries, responses[..., -1]
-            )
-        elif model_id == 2:
-            utility_model = VariationalPreferentialGP(
-                utility_queries, responses[..., -1]
-            )
+        if use_attribute_uncertainty or i == 0:
+            if model_id == 1:
+                utility_model = PairwiseKernelVariationalGP(
+                    utility_queries, responses[..., -1]
+                )
+            elif model_id == 2:
+                utility_model = VariationalPreferentialGP(
+                    utility_queries, responses[..., -1]
+                )
 
         utility_sample = get_pairwise_gp_rff_sample(model=utility_model, n_samples=1)
         acquisition_function = CompositePosteriorMean(
