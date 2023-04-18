@@ -40,7 +40,7 @@ def fit_model(
                 model = CompositeVariationalPreferentialGP(
                     queries,
                     responses,
-                    use_attribute_uncertainty=True,
+                    use_attribute_uncertainty=False,
                     model_id=model_id,
                 )
             return model
