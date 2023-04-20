@@ -53,7 +53,7 @@ def mcpbo_trial(
     model_id: int = 2,
     algo_params: Optional[Dict] = None,
 ) -> None:
-    algo_id = algo + "_" + model_type + "_" + str(model_id)
+    algo_id = algo + "_" + model_type
 
     # get script directory
     script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
