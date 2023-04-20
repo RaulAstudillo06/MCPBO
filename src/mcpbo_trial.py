@@ -31,6 +31,7 @@ from src.utils import (
     compute_posterior_mean_maximizer,
 )
 
+
 # this function runs a single trial of a given problem
 # see more details about the arguments in experiment_manager.py
 def mcpbo_trial(
@@ -52,7 +53,6 @@ def mcpbo_trial(
     model_id: int = 2,
     algo_params: Optional[Dict] = None,
 ) -> None:
-
     algo_id = algo + "_" + model_type + "_" + str(model_id)
 
     # get script directory
@@ -352,7 +352,6 @@ def get_new_suggested_query(
     model_id: int,
     algo_params: Optional[Dict] = None,
 ) -> Tensor:
-
     standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
     num_restarts = 4 * input_dim
     raw_samples = 120 * input_dim
@@ -396,6 +395,7 @@ def get_new_suggested_query(
                         num_restarts,
                         raw_samples,
                         model_id=model_id,
+                        use_attribute_uncertainty=True,
                     )
                 except:
                     print("Number of failed attempts to train the model: " + str(i + 1))

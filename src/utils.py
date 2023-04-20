@@ -40,7 +40,7 @@ def fit_model(
                 model = CompositeVariationalPreferentialGP(
                     queries,
                     responses,
-                    use_attribute_uncertainty=False,
+                    use_attribute_uncertainty=True,
                     model_id=model_id,
                 )
             return model
@@ -199,7 +199,6 @@ def compute_posterior_mean_maximizer(
     model_type,
     input_dim: int,
 ) -> Tensor:
-
     standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
     num_restarts = 4 * input_dim
     raw_samples = 120 * input_dim

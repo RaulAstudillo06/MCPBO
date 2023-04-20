@@ -20,7 +20,7 @@ def gen_composite_thompson_sampling_query(
     num_restarts,
     raw_samples,
     model_id,
-    use_attribute_uncertainty=False,
+    use_attribute_uncertainty=True,
 ):
     num_attributes = responses.shape[-1] - 1
     attribute_models = []
