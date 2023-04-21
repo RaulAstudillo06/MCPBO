@@ -20,7 +20,7 @@ from src.experiment_manager import experiment_manager
 
 # Objective function
 input_dim = 6
-output_dim = 2
+num_attributes = 2
 
 attribute_func = DTLZ1(dim=input_dim, negate=True)
 
