@@ -48,7 +48,7 @@ elif len(sys.argv) == 2:
 
 experiment_manager(
     problem="dtlz1_0.8_0.2",
-    obj_func=attribute_func,
+    attribute_func=attribute_func,
     utility_func=utility_func,
     input_dim=input_dim,
     output_dim=output_dim,
