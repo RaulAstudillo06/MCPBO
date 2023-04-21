@@ -26,7 +26,7 @@ attribute_func = DTLZ1(dim=input_dim, negate=True)
 
 
 def utility_func(Y: Tensor) -> Tensor:
-    output = 0.5 * Y[..., 0] + 0.5 * Y[..., 1]
+    output = 0.8 * Y[..., 0] + 0.2 * Y[..., 1]
     return output
 
 
@@ -47,7 +47,7 @@ elif len(sys.argv) == 2:
     last_trial = int(sys.argv[1])
 
 experiment_manager(
-    problem="dtlz1_0.5_0.5",
+    problem="dtlz1_0.8_0.2",
     obj_func=attribute_func,
     utility_func=utility_func,
     input_dim=input_dim,
@@ -57,7 +57,7 @@ experiment_manager(
     algo=algo,
     model_type=model_type,
     batch_size=2,
-    num_init_queries=4 * input_dim,
+    num_init_queries=2 * (input_dim + 1),
     num_algo_iter=100,
     first_trial=first_trial,
     last_trial=last_trial,
