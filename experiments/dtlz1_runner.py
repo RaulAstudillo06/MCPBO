@@ -51,7 +51,7 @@ experiment_manager(
     attribute_func=attribute_func,
     utility_func=utility_func,
     input_dim=input_dim,
-    output_dim=output_dim,
+    num_attributes=num_attributes,
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,
