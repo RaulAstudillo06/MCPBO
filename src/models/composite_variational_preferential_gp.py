@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 import torch
 from botorch.models.model import Model
 from botorch.posteriors import Posterior
+from gpytorch.kernels import LinearKernel
 from torch import Tensor
 
 from src.models.pairwise_kernel_variational_gp import PairwiseKernelVariationalGP
@@ -68,8 +69,11 @@ class CompositeVariationalPreferentialGP(Model):
                 utility_queries, responses[..., -1]
             )
         elif model_id == 2:
+            linear_kernel = LinearKernel()
             utility_model = VariationalPreferentialGP(
-                utility_queries, responses[..., -1]
+                utility_queries,
+                responses[..., -1],
+                covar_module=linear_kernel,
             )
 
         self.utility_model = [utility_model]
