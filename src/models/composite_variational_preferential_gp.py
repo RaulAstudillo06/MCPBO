@@ -69,11 +69,10 @@ class CompositeVariationalPreferentialGP(Model):
                 utility_queries, responses[..., -1]
             )
         elif model_id == 2:
-            linear_kernel = LinearKernel()
+            # linear_kernel = LinearKernel()
             utility_model = VariationalPreferentialGP(
                 utility_queries,
                 responses[..., -1],
-                covar_module=linear_kernel,
             )
 
         self.utility_model = [utility_model]

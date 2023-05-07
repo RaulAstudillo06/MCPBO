@@ -52,6 +52,7 @@ def get_pairwise_gp_rff_sample(model, n_samples):
             (queries_items.shape[0],)
         )
         adapted_model.covar_module = adapted_model.aux_model.covar_module.latent_kernel
+
         # This is used to draw RFFs-based samples. We set it close to zero because we want noise-free samples
         class LikelihoodForRFF:
             noise = torch.tensor(1e-4).double()
