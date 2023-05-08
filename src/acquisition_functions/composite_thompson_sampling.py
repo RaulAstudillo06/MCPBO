@@ -6,7 +6,7 @@ from copy import copy
 import torch
 
 from src.acquisition_functions.composite_posterior_mean import CompositePosteriorMean
-from src.acquisition_functions.thompson_sampling import get_pairwise_gp_rff_sample
+from src.get_preferential_gp_sample import get_preferential_gp_rff_sample
 from src.models.pairwise_kernel_variational_gp import PairwiseKernelVariationalGP
 from src.models.variational_preferential_gp import VariationalPreferentialGP
 from src.utils import optimize_acqf_and_get_suggested_query
@@ -42,7 +42,7 @@ def gen_composite_thompson_sampling_query(
 
         for attribute_model in attribute_models:
             if use_attribute_uncertainty:
-                attribute_sample = get_pairwise_gp_rff_sample(
+                attribute_sample = get_preferential_gp_rff_sample(
                     model=attribute_model, n_samples=1
                 )
             else:
@@ -76,7 +76,9 @@ def gen_composite_thompson_sampling_query(
                     utility_queries, responses[..., -1]
                 )
 
-        utility_sample = get_pairwise_gp_rff_sample(model=utility_model, n_samples=1)
+        utility_sample = get_preferential_gp_rff_sample(
+            model=utility_model, n_samples=1
+        )
         acquisition_function = CompositePosteriorMean(
             attribute_models=attribute_samples,
             utility_model=utility_sample,

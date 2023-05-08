@@ -6,11 +6,6 @@ from botorch.acquisition import AcquisitionFunction, PosteriorMean, qSimpleRegre
 from botorch.generation.gen import get_best_candidates
 from botorch.models.model import Model
 from botorch.optim.optimize import optimize_acqf
-
-# ======================= NOTE: =======================
-# botorch < 0.8.0
-# from botorch.sampling.samplers import SobolQMCNormalSampler
-# botorch >= 0.8.0
 from botorch.sampling.normal import SobolQMCNormalSampler
 
 from torch import Tensor
