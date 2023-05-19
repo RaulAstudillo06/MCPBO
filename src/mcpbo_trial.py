@@ -96,7 +96,7 @@ def mcpbo_trial(
                     results_folder + "responses/responses_" + str(trial) + ".txt"
                 )
             )
-            if algo is not "ScalarizedTS":
+            if model is "Multioutput":
                 # historical max utility values within queries
                 max_utility_vals_within_queries = list(
                     np.loadtxt(
@@ -162,7 +162,7 @@ def mcpbo_trial(
             t1 = time.time()
             model_training_time = t1 - t0
 
-            if algo is not "ScalarizedTS":
+            if model is "Multioutput":
                 # historical utility values at the maximum of the posterior mean
                 posterior_mean_maximizer = compute_posterior_mean_maximizer(
                     model=model, model_type=model_type, input_dim=input_dim
@@ -204,7 +204,7 @@ def mcpbo_trial(
         t1 = time.time()
         model_training_time = t1 - t0
 
-        if algo is not "ScalarizedTS":
+        if model is "Multioutput":
             # historical utility values at the maximum of the posterior mean
             posterior_mean_maximizer = compute_posterior_mean_maximizer(
                 model=model, model_type=model_type, input_dim=input_dim
@@ -276,7 +276,7 @@ def mcpbo_trial(
         t1 = time.time()
         model_training_time = t1 - t0
 
-        if algo is not "ScalarizedTS":
+        if model is "Multioutput":
             # compute and append current utility value at the maximum of the posterior mean
             posterior_mean_maximizer = compute_posterior_mean_maximizer(
                 model=model, model_type=model_type, input_dim=input_dim
@@ -335,7 +335,7 @@ def mcpbo_trial(
             results_folder + "runtimes/runtimes_" + str(trial) + ".txt",
             np.atleast_1d(runtimes),
         )
-        if algo is not "ScalarizedTS":
+        if model is "Multioutput":
             np.savetxt(
                 results_folder + "utility_vals_at_max_post_mean_" + str(trial) + ".txt",
                 np.atleast_1d(utility_vals_at_max_post_mean),
