@@ -96,24 +96,25 @@ def mcpbo_trial(
                     results_folder + "responses/responses_" + str(trial) + ".txt"
                 )
             )
-            # historical max utility values within queries
-            max_utility_vals_within_queries = list(
-                np.loadtxt(
-                    results_folder
-                    + "max_utility_vals_within_queries_"
-                    + str(trial)
-                    + ".txt"
+            if algo is not "ScalarizedTS":
+                # historical max utility values within queries
+                max_utility_vals_within_queries = list(
+                    np.loadtxt(
+                        results_folder
+                        + "max_utility_vals_within_queries_"
+                        + str(trial)
+                        + ".txt"
+                    )
                 )
-            )
-            # historical utility values at the maximum of the posterior mean
-            utility_vals_at_max_post_mean = list(
-                np.loadtxt(
-                    results_folder
-                    + "utility_vals_at_max_post_mean_"
-                    + str(trial)
-                    + ".txt"
+                # historical utility values at the maximum of the posterior mean
+                utility_vals_at_max_post_mean = list(
+                    np.loadtxt(
+                        results_folder
+                        + "utility_vals_at_max_post_mean_"
+                        + str(trial)
+                        + ".txt"
+                    )
                 )
-            )
             # historical acquisition runtimes
             runtimes = list(
                 np.atleast_1d(
@@ -161,18 +162,19 @@ def mcpbo_trial(
             t1 = time.time()
             model_training_time = t1 - t0
 
-            # historical utility values at the maximum of the posterior mean
-            posterior_mean_maximizer = compute_posterior_mean_maximizer(
-                model=model, model_type=model_type, input_dim=input_dim
-            )
-            utility_val_at_max_post_mean = utility_func(
-                attribute_func(posterior_mean_maximizer)
-            ).item()
-            utility_vals_at_max_post_mean = [utility_val_at_max_post_mean]
+            if algo is not "ScalarizedTS":
+                # historical utility values at the maximum of the posterior mean
+                posterior_mean_maximizer = compute_posterior_mean_maximizer(
+                    model=model, model_type=model_type, input_dim=input_dim
+                )
+                utility_val_at_max_post_mean = utility_func(
+                    attribute_func(posterior_mean_maximizer)
+                ).item()
+                utility_vals_at_max_post_mean = [utility_val_at_max_post_mean]
 
-            # historical max utility values within queries and runtimes
-            max_utility_val_within_queries = utility_vals.max().item()
-            max_utility_vals_within_queries = [max_utility_val_within_queries]
+                # historical max utility values within queries and runtimes
+                max_utility_val_within_queries = utility_vals.max().item()
+                max_utility_vals_within_queries = [max_utility_val_within_queries]
 
             # Historical acquisition runtimes
             runtimes = []
@@ -202,18 +204,19 @@ def mcpbo_trial(
         t1 = time.time()
         model_training_time = t1 - t0
 
-        # historical utility values at the maximum of the posterior mean
-        posterior_mean_maximizer = compute_posterior_mean_maximizer(
-            model=model, model_type=model_type, input_dim=input_dim
-        )
-        utility_val_at_max_post_mean = utility_func(
-            attribute_func(posterior_mean_maximizer)
-        ).item()
-        utility_vals_at_max_post_mean = [utility_val_at_max_post_mean]
+        if algo is not "ScalarizedTS":
+            # historical utility values at the maximum of the posterior mean
+            posterior_mean_maximizer = compute_posterior_mean_maximizer(
+                model=model, model_type=model_type, input_dim=input_dim
+            )
+            utility_val_at_max_post_mean = utility_func(
+                attribute_func(posterior_mean_maximizer)
+            ).item()
+            utility_vals_at_max_post_mean = [utility_val_at_max_post_mean]
 
-        # historical max utility values within queries and runtimes
-        max_utility_val_within_queries = utility_vals.max().item()
-        max_utility_vals_within_queries = [max_utility_val_within_queries]
+            # historical max utility values within queries and runtimes
+            max_utility_val_within_queries = utility_vals.max().item()
+            max_utility_vals_within_queries = [max_utility_val_within_queries]
 
         # historical acquisition runtimes
         runtimes = []
@@ -273,25 +276,27 @@ def mcpbo_trial(
         t1 = time.time()
         model_training_time = t1 - t0
 
-        # compute and append current utility value at the maximum of the posterior mean
-        posterior_mean_maximizer = compute_posterior_mean_maximizer(
-            model=model, model_type=model_type, input_dim=input_dim
-        )
-        utility_val_at_max_post_mean = utility_func(
-            attribute_func(posterior_mean_maximizer)
-        ).item()
-        utility_vals_at_max_post_mean.append(utility_val_at_max_post_mean)
-        print(
-            "Utility value at the maximum of the posterior mean: "
-            + str(utility_val_at_max_post_mean)
-        )
+        if algo is not "ScalarizedTS":
+            # compute and append current utility value at the maximum of the posterior mean
+            posterior_mean_maximizer = compute_posterior_mean_maximizer(
+                model=model, model_type=model_type, input_dim=input_dim
+            )
+            utility_val_at_max_post_mean = utility_func(
+                attribute_func(posterior_mean_maximizer)
+            ).item()
+            utility_vals_at_max_post_mean.append(utility_val_at_max_post_mean)
+            print(
+                "Utility value at the maximum of the posterior mean: "
+                + str(utility_val_at_max_post_mean)
+            )
 
-        # append current max utility val within queries
-        max_utility_val_within_queries = utility_vals.max().item()
-        max_utility_vals_within_queries.append(max_utility_val_within_queries)
-        print(
-            "Max utility value within queries: " + str(max_utility_val_within_queries)
-        )
+            # append current max utility val within queries
+            max_utility_val_within_queries = utility_vals.max().item()
+            max_utility_vals_within_queries.append(max_utility_val_within_queries)
+            print(
+                "Max utility value within queries: "
+                + str(max_utility_val_within_queries)
+            )
 
         # save data
         if not os.path.exists(results_folder):
@@ -330,14 +335,18 @@ def mcpbo_trial(
             results_folder + "runtimes/runtimes_" + str(trial) + ".txt",
             np.atleast_1d(runtimes),
         )
-        np.savetxt(
-            results_folder + "utility_vals_at_max_post_mean_" + str(trial) + ".txt",
-            np.atleast_1d(utility_vals_at_max_post_mean),
-        )
-        np.savetxt(
-            results_folder + "max_utility_vals_within_queries_" + str(trial) + ".txt",
-            np.atleast_1d(max_utility_vals_within_queries),
-        )
+        if algo is not "ScalarizedTS":
+            np.savetxt(
+                results_folder + "utility_vals_at_max_post_mean_" + str(trial) + ".txt",
+                np.atleast_1d(utility_vals_at_max_post_mean),
+            )
+            np.savetxt(
+                results_folder
+                + "max_utility_vals_within_queries_"
+                + str(trial)
+                + ".txt",
+                np.atleast_1d(max_utility_vals_within_queries),
+            )
 
 
 # computes the new query to be shown to the DM
@@ -399,6 +408,15 @@ def get_new_suggested_query(
                     )
                 except:
                     print("Number of failed attempts to train the model: " + str(i + 1))
+    elif algo == "ScalarizedTS":
+        return gen_thompson_sampling_query(
+            model,
+            batch_size,
+            standard_bounds,
+            num_restarts,
+            raw_samples,
+            scalarize=True,
+        )
 
     new_query = optimize_acqf_and_get_suggested_query(
         acq_func=acquisition_function,

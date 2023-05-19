@@ -31,8 +31,8 @@ def utility_func(Y: Tensor) -> Tensor:
 
 
 # Algos
-algo = "qEUBO"
-model_type = "Composite"
+algo = "ScalarizedTS"
+model_type = "Multioutput"
 
 # estimate noise level
 comp_noise_type = "logit"
@@ -61,5 +61,5 @@ experiment_manager(
     num_algo_iter=100,
     first_trial=first_trial,
     last_trial=last_trial,
-    restart=False,
+    restart=True,
 )

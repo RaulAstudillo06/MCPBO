@@ -5,6 +5,7 @@ import torch
 from botorch.acquisition import AcquisitionFunction, PosteriorMean, qSimpleRegret
 from botorch.generation.gen import get_best_candidates
 from botorch.models.model import Model
+from botorch.models.model_list_gp_regression import ModelListGP
 from botorch.optim.optimize import optimize_acqf
 from botorch.sampling.normal import SobolQMCNormalSampler
 
@@ -38,6 +39,19 @@ def fit_model(
                     use_attribute_uncertainty=True,
                     model_id=model_id,
                 )
+            elif model_type == "Multioutput":
+                models = []
+                num_attributes = responses.shape[-1] - 1
+
+                for j in range(num_attributes):
+                    if model_id == 1:
+                        model = PairwiseKernelVariationalGP(queries, responses[..., j])
+                    elif model_id == 2:
+                        model = VariationalPreferentialGP(queries, responses[..., j])
+
+                    models.append(model)
+                model = ModelListGP(*models)
+
             return model
         except:
             print("Number of failed attempts to train the model: " + str(i + 1))
