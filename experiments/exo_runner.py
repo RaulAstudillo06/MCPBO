@@ -9,7 +9,7 @@ from botorch.settings import debug
 from torch import Tensor
 
 torch.set_default_dtype(torch.float64)
-torch.autograd.set_detect_anomaly(True)
+torch.autograd.set_detect_anomaly(False)
 debug._set_state(False)
 
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -24,7 +24,7 @@ input_dim = 5
 num_attributes = 4
 
 inputs = torch.tensor(np.loadtxt("exo_data/inputs.txt"))
-attribute_vals = torch.tensor(np.loadtxt("exo_data/attribute_vals.txt"))[
+attribute_vals = torch.tensor(np.loadtxt("exo_data/normalized_attribute_vals.txt"))[
     ..., [1, 2, 5, 6]
 ]
 model = SingleTaskGP(
@@ -77,5 +77,5 @@ experiment_manager(
     num_algo_iter=100,
     first_trial=first_trial,
     last_trial=last_trial,
-    restart=False,
+    restart=True,
 )

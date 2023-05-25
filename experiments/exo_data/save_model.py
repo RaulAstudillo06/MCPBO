@@ -10,7 +10,9 @@ torch.set_default_dtype(torch.float64)
 
 
 inputs = torch.tensor(np.loadtxt("inputs.txt"))
-attribute_vals = torch.tensor(np.loadtxt("attribute_vals.txt"))[..., [1, 2, 5, 6]]
+attribute_vals = torch.tensor(np.loadtxt("normalized_attribute_vals.txt"))[
+    ..., [1, 2, 5, 6]
+]
 model = SingleTaskGP(
     train_X=inputs, train_Y=attribute_vals, outcome_transform=Standardize(4)
 )
