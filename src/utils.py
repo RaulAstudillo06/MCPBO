@@ -8,6 +8,8 @@ from botorch.models.model import Model
 from botorch.models.model_list_gp_regression import ModelListGP
 from botorch.optim.optimize import optimize_acqf
 from botorch.sampling.normal import SobolQMCNormalSampler
+from botorch.utils.multi_objective.scalarization import get_chebyshev_scalarization
+from botorch.utils.sampling import sample_simplex
 
 from torch import Tensor
 from torch.distributions import Bernoulli, Normal, Gumbel
@@ -24,10 +26,16 @@ def fit_model(
     responses: Tensor,
     model_type: str,
     model_id: int,
+    algo: str,
 ):
     for i in range(10):
         try:
-            if model_type == "Standard":
+            if algo == "I-PBO-TS":
+                if model_id == 1:
+                    model = PairwiseKernelVariationalGP(queries, responses)
+                elif model_id == 2:
+                    model = VariationalPreferentialGP(queries, responses)
+            elif model_type == "Standard":
                 if model_id == 1:
                     model = PairwiseKernelVariationalGP(queries, responses[..., -1])
                 elif model_id == 2:
@@ -66,6 +74,7 @@ def generate_initial_data(
     utility_func,
     comp_noise_type,
     comp_noise,
+    algo,
     seed: int = None,
 ):
     # generates initial data
@@ -74,7 +83,7 @@ def generate_initial_data(
         queries, attribute_func, utility_func
     )
     responses = generate_responses(
-        attribute_vals, utility_vals, comp_noise_type, comp_noise
+        attribute_vals, utility_vals, comp_noise_type, comp_noise, algo
     )
     return queries, attribute_vals, utility_vals, responses
 
@@ -109,15 +118,25 @@ def get_attribute_and_utility_vals(queries, attribute_func, utility_func):
     return attribute_vals, utility_vals
 
 
-def generate_responses(attribute_vals, utility_vals, noise_type, noise_level):
+def generate_responses(attribute_vals, utility_vals, noise_type, noise_level, algo):
     # generates simulated (noisy) comparisons based on true underlying attribute and utility values
     corrupted_attribute_vals = corrupt_vals(attribute_vals, noise_type, noise_level)
-    responses_attribute_vals = torch.argmax(corrupted_attribute_vals, dim=-2)
-    corrupted_utility_vals = corrupt_vals(utility_vals, noise_type, noise_level)
-    response_utility = torch.argmax(corrupted_utility_vals, dim=-1)
-    responses = torch.cat(
-        [responses_attribute_vals, response_utility.unsqueeze(-1)], dim=-1
-    )
+    if algo == "I-PBO-TS":
+        weights = sample_simplex(d=attribute_vals.shape[-1]).squeeze()
+        chebyshev_scalarization = get_chebyshev_scalarization(
+            weights=weights,
+            Y=corrupted_attribute_vals[:, 0, :],
+        )
+        corrupted_scalarization_vals = chebyshev_scalarization(corrupted_attribute_vals)
+        responses = torch.argmax(corrupted_scalarization_vals, dim=-1)
+
+    else:
+        responses_attribute_vals = torch.argmax(corrupted_attribute_vals, dim=-2)
+        corrupted_utility_vals = corrupt_vals(utility_vals, noise_type, noise_level)
+        response_utility = torch.argmax(corrupted_utility_vals, dim=-1)
+        responses = torch.cat(
+            [responses_attribute_vals, response_utility.unsqueeze(-1)], dim=-1
+        )
     return responses
 
 

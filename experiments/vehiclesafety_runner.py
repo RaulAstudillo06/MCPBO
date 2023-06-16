@@ -63,7 +63,7 @@ thresholds = torch.tensor([0.5, 0.8, 0.8])
 utility_func = PiecewiseLinear(beta1=beta1, beta2=beta2, thresholds=thresholds)
 
 # Algos
-algo = "Random"
+algo = "I-PBO-TS"
 model_type = "Multioutput"
 
 # estimate noise level
@@ -90,7 +90,7 @@ experiment_manager(
     model_type=model_type,
     batch_size=2,
     num_init_queries=2 * (input_dim + 1),
-    num_algo_iter=100,
+    num_algo_iter=75,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=True,

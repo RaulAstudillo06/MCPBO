@@ -47,7 +47,7 @@ def utility_func(Y: Tensor) -> Tensor:
 
 
 # Algos
-algo = "ScalarizedTS"
+algo = "I-PBO-TS"
 model_type = "Multioutput"
 
 # estimate noise level
@@ -74,7 +74,7 @@ experiment_manager(
     model_type=model_type,
     batch_size=2,
     num_init_queries=2 * (input_dim + 1),
-    num_algo_iter=100,
+    num_algo_iter=75,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=True,

@@ -131,6 +131,7 @@ def mcpbo_trial(
                 responses,
                 model_type=model_type,
                 model_id=model_id,
+                algo=algo,
             )
             t1 = time.time()
             model_training_time = t1 - t0
@@ -148,6 +149,7 @@ def mcpbo_trial(
                 utility_func=utility_func,
                 comp_noise_type=comp_noise_type,
                 comp_noise=comp_noise,
+                algo=algo,
                 seed=trial,
             )
 
@@ -158,6 +160,7 @@ def mcpbo_trial(
                 responses,
                 model_type=model_type,
                 model_id=model_id,
+                algo=algo,
             )
             t1 = time.time()
             model_training_time = t1 - t0
@@ -190,6 +193,7 @@ def mcpbo_trial(
             utility_func=utility_func,
             comp_noise_type=comp_noise_type,
             comp_noise=comp_noise,
+            algo=algo,
             seed=trial,
         )
 
@@ -200,6 +204,7 @@ def mcpbo_trial(
             responses,
             model_type=model_type,
             model_id=model_id,
+            algo=algo,
         )
         t1 = time.time()
         model_training_time = t1 - t0
@@ -257,6 +262,7 @@ def mcpbo_trial(
             new_utility_val,
             noise_type=comp_noise_type,
             noise_level=comp_noise,
+            algo=algo,
         )
 
         # update training data
@@ -272,6 +278,7 @@ def mcpbo_trial(
             responses,
             model_type=model_type,
             model_id=model_id,
+            algo=algo,
         )
         t1 = time.time()
         model_training_time = t1 - t0
@@ -416,6 +423,15 @@ def get_new_suggested_query(
             num_restarts,
             raw_samples,
             scalarize=True,
+        )
+    elif algo == "I-PBO-TS":
+        return gen_thompson_sampling_query(
+            model,
+            batch_size,
+            standard_bounds,
+            num_restarts,
+            raw_samples,
+            scalarize=False,
         )
 
     new_query = optimize_acqf_and_get_suggested_query(
