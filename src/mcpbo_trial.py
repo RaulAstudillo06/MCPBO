@@ -157,6 +157,7 @@ def mcpbo_trial(
             )
 
             # fit model
+            t0 = time.time()
             if algo == "Random":
                 model = fit_model(
                     queries,
