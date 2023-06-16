@@ -127,6 +127,8 @@ def mcpbo_trial(
             # fit model
             t0 = time.time()
             if algo == "Random":
+                model = None
+            else:
                 model = fit_model(
                     queries,
                     responses,
@@ -134,8 +136,6 @@ def mcpbo_trial(
                     model_id=model_id,
                     algo=algo,
                 )
-            else:
-                model = None
             t1 = time.time()
             model_training_time = t1 - t0
 
@@ -159,6 +159,8 @@ def mcpbo_trial(
             # fit model
             t0 = time.time()
             if algo == "Random":
+                model = None
+            else:
                 model = fit_model(
                     queries,
                     responses,
@@ -166,8 +168,6 @@ def mcpbo_trial(
                     model_id=model_id,
                     algo=algo,
                 )
-            else:
-                model = None
             t1 = time.time()
             model_training_time = t1 - t0
 
@@ -206,6 +206,8 @@ def mcpbo_trial(
         # fit model
         t0 = time.time()
         if algo == "Random":
+            model = None
+        else:
             model = fit_model(
                 queries,
                 responses,
@@ -213,8 +215,6 @@ def mcpbo_trial(
                 model_id=model_id,
                 algo=algo,
             )
-        else:
-            model = None
         t1 = time.time()
         model_training_time = t1 - t0
 
@@ -283,6 +283,8 @@ def mcpbo_trial(
         # fit model
         t0 = time.time()
         if algo == "Random":
+            model = None
+        else:
             model = fit_model(
                 queries,
                 responses,
@@ -290,8 +292,6 @@ def mcpbo_trial(
                 model_id=model_id,
                 algo=algo,
             )
-        else:
-            model = None
         t1 = time.time()
         model_training_time = t1 - t0
 
