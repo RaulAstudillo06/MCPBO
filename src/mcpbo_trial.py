@@ -126,13 +126,16 @@ def mcpbo_trial(
 
             # fit model
             t0 = time.time()
-            model = fit_model(
-                queries,
-                responses,
-                model_type=model_type,
-                model_id=model_id,
-                algo=algo,
-            )
+            if algo == "Random":
+                model = fit_model(
+                    queries,
+                    responses,
+                    model_type=model_type,
+                    model_id=model_id,
+                    algo=algo,
+                )
+            else:
+                model = None
             t1 = time.time()
             model_training_time = t1 - t0
 
@@ -154,14 +157,16 @@ def mcpbo_trial(
             )
 
             # fit model
-            t0 = time.time()
-            model = fit_model(
-                queries,
-                responses,
-                model_type=model_type,
-                model_id=model_id,
-                algo=algo,
-            )
+            if algo == "Random":
+                model = fit_model(
+                    queries,
+                    responses,
+                    model_type=model_type,
+                    model_id=model_id,
+                    algo=algo,
+                )
+            else:
+                model = None
             t1 = time.time()
             model_training_time = t1 - t0
 
@@ -199,13 +204,16 @@ def mcpbo_trial(
 
         # fit model
         t0 = time.time()
-        model = fit_model(
-            queries,
-            responses,
-            model_type=model_type,
-            model_id=model_id,
-            algo=algo,
-        )
+        if algo == "Random":
+            model = fit_model(
+                queries,
+                responses,
+                model_type=model_type,
+                model_id=model_id,
+                algo=algo,
+            )
+        else:
+            model = None
         t1 = time.time()
         model_training_time = t1 - t0
 
@@ -273,13 +281,16 @@ def mcpbo_trial(
 
         # fit model
         t0 = time.time()
-        model = fit_model(
-            queries,
-            responses,
-            model_type=model_type,
-            model_id=model_id,
-            algo=algo,
-        )
+        if algo == "Random":
+            model = fit_model(
+                queries,
+                responses,
+                model_type=model_type,
+                model_id=model_id,
+                algo=algo,
+            )
+        else:
+            model = None
         t1 = time.time()
         model_training_time = t1 - t0
 
