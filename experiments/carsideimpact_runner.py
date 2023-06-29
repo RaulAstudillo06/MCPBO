@@ -19,7 +19,7 @@ from src.experiment_manager import experiment_manager
 
 
 # Objective function
-carsideimpact_func = CarSideImpact()
+carsideimpact_func = CarSideImpact(negate=True)
 input_dim = carsideimpact_func.dim
 num_attributes = carsideimpact_func.num_objectives
 bounds = torch.tensor(carsideimpact_func._bounds)
@@ -66,5 +66,5 @@ experiment_manager(
     num_algo_iter=100,
     first_trial=first_trial,
     last_trial=last_trial,
-    restart=False,
+    restart=True,
 )
