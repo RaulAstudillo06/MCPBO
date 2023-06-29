@@ -22,25 +22,14 @@ from piecewiselinear_utility import PiecewiseLinear
 
 
 # Objective function
-input_dim = 5
-num_attributes = 3
-
-attribute_bounds = torch.tensor(
-    [
-        [-1.7040e03, -1.1708e01, -2.6192e-01],
-        [-1.6619e03, -6.2136e00, -4.2879e-02],
-    ]
-)
-
 vehiclesafety_func = VehicleSafety(negate=True)
+input_dim = vehiclesafety_func.dim
+num_attributes = vehiclesafety_func.num_objectives
 
 
 def attribute_func(X: Tensor) -> Tensor:
     X_unscaled = 2.0 * X + 1.0
     output = vehiclesafety_func(X_unscaled)
-    output = (output - attribute_bounds[0, :]) / (
-        attribute_bounds[1, :] - attribute_bounds[0, :]
-    )
     return output
 
 
@@ -63,7 +52,7 @@ thresholds = torch.tensor([0.5, 0.8, 0.8])
 utility_func = PiecewiseLinear(beta1=beta1, beta2=beta2, thresholds=thresholds)
 
 # Algos
-algo = "I-PBO-TS"
+algo = "ScalarizedTS"
 model_type = "Multioutput"
 
 # estimate noise level
@@ -90,7 +79,7 @@ experiment_manager(
     model_type=model_type,
     batch_size=2,
     num_init_queries=2 * (input_dim + 1),
-    num_algo_iter=75,
+    num_algo_iter=100,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=True,
