@@ -39,7 +39,10 @@ def mcpbo_trial(
     model_id: int = 2,
     algo_params: Optional[Dict] = None,
 ) -> None:
-    algo_id = algo + "_" + str(batch_size)  # Append q to algo ID
+    if batch_size > 2:
+        algo_id = algo + "_" + str(batch_size)  # Append q to algo ID
+    else:
+        algo_id = algo
 
     # get script directory
     script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
