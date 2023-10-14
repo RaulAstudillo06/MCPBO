@@ -42,7 +42,7 @@ if False:
     print(noise_level)
     print(e)
 
-noise_level = [0.01, 0.01]
+noise_level = [0.0033, 0.0033]
 
 # Run experiment
 if len(sys.argv) == 3:
@@ -62,7 +62,7 @@ experiment_manager(
     algo=algo,
     batch_size=2,
     num_init_queries=2 * (input_dim + 1),
-    num_algo_iter=2,
+    num_algo_iter=100,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=True,
