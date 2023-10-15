@@ -9,7 +9,7 @@ import scipy.optimize as opt
 from world import World
 import car
 import dynamics
-import visualize
+# import visualize
 import lane
 
 class Simulation(object):
@@ -101,19 +101,19 @@ class DrivingSimulation(Simulation):
         traj = self.get_trajectory(all_info=all_info)
         return traj[self.recording_time[0]:self.recording_time[1]]
 
-    def watch(self, repeat_count=1):
-        self.robot.x = self.initial_state[0]
-        self.human.x = self.initial_state[1]
-        breakpoint()
-        if self.viewer is None:
-            self.viewer = visualize.Visualizer(0.1, magnify=1.2)
-            self.viewer.main_car = self.robot
-            self.viewer.use_world(self.world)
-            self.viewer.paused = True
-        for _ in range(repeat_count):
-            self.viewer.run_modified(history_x=[self.robot_history_x, self.human_history_x], history_u=[self.robot_history_u, self.human_history_u])
-        self.viewer.window.close()
-        self.viewer = None
+    # def watch(self, repeat_count=1):
+    #     self.robot.x = self.initial_state[0]
+    #     self.human.x = self.initial_state[1]
+    #     breakpoint()
+    #     if self.viewer is None:
+    #         self.viewer = visualize.Visualizer(0.1, magnify=1.2)
+    #         self.viewer.main_car = self.robot
+    #         self.viewer.use_world(self.world)
+    #         self.viewer.paused = True
+    #     for _ in range(repeat_count):
+    #         self.viewer.run_modified(history_x=[self.robot_history_x, self.human_history_x], history_u=[self.robot_history_u, self.human_history_u])
+    #     self.viewer.window.close()
+    #     self.viewer = None
 
 
 
@@ -139,7 +139,8 @@ class Driver(DrivingSimulation):
         keeping_speed = np.mean(np.square(recording[:,0,3]-1)) / 0.42202643
 
         # heading (higher is better)
-        heading = np.mean(np.sin(recording[:,0,2])) / 0.06112367
+        heading = np.mean(np.sin(recording[:,0,2]))
+        # heading = np.mean(np.sin(recording[:,0,2])) / 0.06112367
 
         # collision avoidance (lower is better)
         collision_avoidance = np.mean(np.exp(-(7*np.square(recording[:,0,0]-recording[:,1,0])+3*np.square(recording[:,0,1]-recording[:,1,1])))) / 0.15258019
@@ -219,6 +220,27 @@ def get_features(traj):
         collision_avoidance = np.mean(np.exp(-(7*np.square(recording[:,0,0]-recording[:,1,0])+3*np.square(recording[:,0,1]-recording[:,1,1])))) / 0.15258019
 
         return [staying_in_lane, keeping_speed, heading, collision_avoidance]
+
+def func(traj, *args):
+
+	w = np.array(args[1])
+	features = get_features(traj)
+	return -np.mean(np.array(features).dot(w))
+
+
+def compute_control(simulation_object, w, iter_count=10):
+	# u = simulation_object.ctrl_size
+	lower_ctrl_bound = [x[0] for x in simulation_object.ctrl_bounds]
+	upper_ctrl_bound = [x[1] for x in simulation_object.ctrl_bounds]
+	opt_val = np.inf
+	for _ in range(iter_count):
+		temp_res = opt.fmin_l_bfgs_b(func, x0=np.random.uniform(low=lower_ctrl_bound, high=upper_ctrl_bound, size=(u)), args=(simulation_object, w), bounds=simulation_object.ctrl_bounds, approx_grad=True)
+		if temp_res[1] < opt_val:
+			optimal_ctrl = temp_res[0]
+			opt_val = temp_res[1]
+	print(-opt_val)
+	return optimal_ctrl
+
 
 # driver_env = Driver()
 # driver_env.run()

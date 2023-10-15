@@ -1,12 +1,25 @@
 import numpy as np
+import utils_driving as utils
 import torch
+from trajectory import Trajectory
+import feature
 import numpy as np
+import scipy.optimize as opt
+
+from world import World
+import car
+import dynamics
+
+# import visualize
+import lane
 
 from test_car_sim import *
 
+from algos import generate_psi
 import algos
 import numpy as np
-import math
+import sys
+import os, math
 
 
 def getPDCtrlAction(driver_env, agent1, agent2, ctrl_param):
@@ -88,9 +101,3 @@ def updateCtrlParam(ctrls):
 
 
 # D = 100
-
-# driver_env = Driver()
-# ctrl_param = updateCtrlParam([1,1,1,0])
-# features = evalFeatures(driver_env,ctrl_param)
-
-# breakpoint()

@@ -3,7 +3,7 @@ import car
 import math
 import feature
 import dynamics
-import visualize
+# import visualize
 import utils_driving as utils
 import sys
 # import theano as th
@@ -290,22 +290,22 @@ def world_features(num=0):
     #world.cars.append(car.NestedOptimizerCar(dyn, [0.0, 0.5, math.pi/2., 0.3], color='yellow'))
     return world
 
-if __name__ == '__main__':
-    world = playground()
-    #world.cars = world.cars[:0]
-    vis = visualize.Visualizer(0.1, magnify=1.2)
-    vis.main_car = None
-    vis.use_world(world)
-    vis.paused = True
-    @feature.feature
-    def zero(t, x, u):
-        return 0.
-    r = zero
-    #for lane in world.lanes:
-    #    r = r+lane.gaussian()
-    #for fence in world.fences:
-    #    r = r-3.*fence.gaussian()
-    r = r - world.cars[0].linear.gaussian()
-    #vis.visible_cars = [world.cars[0]]
-    vis.set_heat(r)
-    vis.run()
+# if __name__ == '__main__':
+#     world = playground()
+#     #world.cars = world.cars[:0]
+#     vis = visualize.Visualizer(0.1, magnify=1.2)
+#     vis.main_car = None
+#     vis.use_world(world)
+#     vis.paused = True
+#     @feature.feature
+#     def zero(t, x, u):
+#         return 0.
+#     r = zero
+#     #for lane in world.lanes:
+#     #    r = r+lane.gaussian()
+#     #for fence in world.fences:
+#     #    r = r-3.*fence.gaussian()
+#     r = r - world.cars[0].linear.gaussian()
+#     #vis.visible_cars = [world.cars[0]]
+#     vis.set_heat(r)
+#     vis.run()
