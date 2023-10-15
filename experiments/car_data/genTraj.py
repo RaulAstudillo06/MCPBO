@@ -1,24 +1,12 @@
 import numpy as np
-import utils_driving as utils
 import torch
-from trajectory import Trajectory
-import feature
 import numpy as np
-import scipy.optimize as opt
-
-from world import World
-import car
-import dynamics
-import visualize
-import lane
 
 from test_car_sim import *
 
-from algos import generate_psi
 import algos
 import numpy as np
-import sys
-import os, math
+import math
 
 
 def getPDCtrlAction(driver_env, agent1, agent2, ctrl_param):
