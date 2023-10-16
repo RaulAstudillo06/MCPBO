@@ -19,12 +19,12 @@ from src.get_noise_level import get_noise_level
 
 # Attribute function
 input_dim = 6
-num_attributes = 2
-attribute_func = DTLZ1(dim=input_dim, negate=True)
+num_attributes = 3
+attribute_func = DTLZ1(dim=input_dim, num_objectives=num_attributes, negate=True)
 
 # Algos
-# algo = "SDTS"
-algo = "SDTS-HS"
+algo = "SDTS"
+# algo = "SDTS-HS"
 # algo = "I-PBO-DTS"
 # algo = "Random"
 
@@ -42,7 +42,8 @@ if False:
     print(noise_level)
     print(e)
 
-noise_level = [0.4521, 0.4521]
+# noise_level = [0.4521, 0.4521]
+noise_level = [0.0466, 0.0466, 0.3456]
 
 # Run experiment
 if len(sys.argv) == 3:
