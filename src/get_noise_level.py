@@ -17,12 +17,12 @@ def get_noise_level(
         target_Y = target_Y[torch.randperm(target_Y.shape[0])]
         target_Y = target_Y.reshape(-1, 2)
 
-        # estimate probit error
+        # Estimate error rate
         true_comps = target_Y[:, 0] > target_Y[:, 1]
 
         res = minimize(
             error_rate_loss,
-            x0=0.01,
+            x0=0.001,
             args=(target_Y, true_comps, target_error, comp_noise_type),
         )
         print(res)

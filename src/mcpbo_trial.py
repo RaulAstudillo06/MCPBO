@@ -38,7 +38,7 @@ def mcpbo_trial(
     ignore_failures: bool,
     model_id: int = 2,
     algo_params: Optional[Dict] = None,
-) -> None:
+) -> Tensor:
     if batch_size > 2:
         algo_id = algo + "_" + str(batch_size)  # Append q to algo ID
     else:
@@ -236,6 +236,10 @@ def mcpbo_trial(
             results_folder + "runtimes/runtimes_" + str(trial) + ".txt",
             np.atleast_1d(runtimes),
         )
+    attribute_vals_reshaped = attribute_vals.numpy().reshape(
+        attribute_vals.shape[0], -1
+    )
+    return attribute_vals_reshaped
 
 
 # computes the new query to be shown to the DM
