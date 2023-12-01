@@ -3,16 +3,17 @@ from typing import List, Optional
 import torch
 
 from botorch.acquisition import AcquisitionFunction, PosteriorMean, qSimpleRegret
+from botorch.fit import fit_gpytorch_mll
 from botorch.generation.gen import get_best_candidates
 from botorch.models.model import Model
-from botorch.models.gp_regression import SingleTaskGP
+from botorch.models.gp_regression import FixedNoiseGP, SingleTaskGP
 from botorch.models.model_list_gp_regression import ModelListGP
 from botorch.models.transforms.outcome import Standardize
 from botorch.optim.optimize import optimize_acqf
 from botorch.sampling.normal import SobolQMCNormalSampler
 from botorch.utils.multi_objective.scalarization import get_chebyshev_scalarization
 from botorch.utils.sampling import sample_simplex
-
+from gpytorch.mlls import ExactMarginalLogLikelihood
 from torch import Tensor
 from torch.distributions import Bernoulli, Normal, Gumbel
 
@@ -63,11 +64,24 @@ def fit_model(
 
                 for j in range(num_attributes):
                     if obs_attributes[j]:
-                        model = SingleTaskGP(
-                            train_X=queries_reshaped,
-                            train_Y=utility_vals_reshaped[..., [j]],
-                            outcome_transform=Standardize(m=1),
+                        train_Yvar = torch.full_like(
+                            utility_vals_reshaped[..., [j]], 1e-4
                         )
+                        if True:
+                            model = SingleTaskGP(
+                                train_X=queries_reshaped,
+                                train_Y=utility_vals_reshaped[..., [j]],
+                                outcome_transform=Standardize(m=1),
+                            )
+                            mll = ExactMarginalLogLikelihood(model.likelihood, model)
+                            fit_gpytorch_mll(mll)
+                        else:
+                            model = FixedNoiseGP(
+                                train_X=queries_reshaped,
+                                train_Y=utility_vals_reshaped[..., [j]],
+                                train_Yvar=train_Yvar,
+                                outcome_transform=Standardize(m=1),
+                            )
                     else:
                         model = Model(queries, responses[..., j])
                     models.append(model)
