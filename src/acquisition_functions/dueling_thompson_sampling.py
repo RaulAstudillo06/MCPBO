@@ -10,11 +10,12 @@ from botorch.utils.multi_objective.scalarization import get_chebyshev_scalarizat
 from botorch.utils.sampling import sample_simplex
 
 from src.acquisition_functions.scalarized_posterior_mean import ScalarizedPosteriorMean
-from src.get_preferential_gp_sample import get_preferential_gp_rff_sample
-from src.utils import optimize_acqf_and_get_suggested_query
+from src.utils.get_preferential_gp_sample import get_preferential_gp_rff_sample
+from src.utils.utils import optimize_acqf_and_get_suggested_query
 
 
-def gen_thompson_sampling_query(
+# generates a (scalarized) dueling thompson sampling query
+def gen_dueling_thompson_sampling_query(
     model,
     num_alternatives,
     bounds,
@@ -24,6 +25,7 @@ def gen_thompson_sampling_query(
     fix_scalarization=True,
 ):
     query = []
+    # this scalarizes a multi-output sample (required by SDTS)
     if scalarize:
         mean_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
         if fix_scalarization:
@@ -31,6 +33,7 @@ def gen_thompson_sampling_query(
             chebyshev_scalarization = GenericMCObjective(
                 get_chebyshev_scalarization(weights=weights, Y=mean_train_inputs)
             )
+    # generate each alternative in the query sequentially (this could be parallelized)
     for _ in range(num_alternatives):
         model_rff_sample = get_preferential_gp_rff_sample(model=model, n_samples=1)
         if scalarize:
@@ -50,7 +53,7 @@ def gen_thompson_sampling_query(
             bounds=bounds,
             num_restarts=num_restarts,
             raw_samples=raw_samples,
-            batch_size=1,  # Batching is not supported by RFFs-based sample constructor
+            batch_size=1,  # batching is not supported by RFFs-based sample constructor
             batch_limit=1,
             init_batch_limit=1,
         )

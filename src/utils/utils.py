@@ -1,11 +1,13 @@
-from typing import Optional
+from typing import List, Optional
 
 import torch
 
 from botorch.acquisition import AcquisitionFunction, PosteriorMean, qSimpleRegret
 from botorch.generation.gen import get_best_candidates
 from botorch.models.model import Model
+from botorch.models.gp_regression import SingleTaskGP
 from botorch.models.model_list_gp_regression import ModelListGP
+from botorch.models.transforms.outcome import Standardize
 from botorch.optim.optimize import optimize_acqf
 from botorch.sampling.normal import SobolQMCNormalSampler
 from botorch.utils.multi_objective.scalarization import get_chebyshev_scalarization
@@ -20,7 +22,9 @@ from src.models.pairwise_kernel_variational_gp import PairwiseKernelVariationalG
 
 def fit_model(
     queries: Tensor,
+    utility_vals: Tensor,
     responses: Tensor,
+    obs_attributes: List,
     model_id: int,
     algo: str,
 ):
@@ -38,9 +42,34 @@ def fit_model(
             elif "SDTS" in algo:
                 models = []
                 num_attributes = responses.shape[-1]
+                if any(obs_attributes):
+                    queries_reshaped = queries.reshape(
+                        torch.Size(
+                            [queries.shape[0] * queries.shape[1], queries.shape[2]]
+                        )
+                    )
+                    utility_vals_reshaped = utility_vals.reshape(
+                        torch.Size(
+                            [
+                                utility_vals.shape[0] * utility_vals.shape[1],
+                                utility_vals.shape[2],
+                            ]
+                        )
+                    )
+                    print(queries)
+                    print(queries_reshaped)
+                    print(utility_vals)
+                    print(utility_vals_reshaped)
 
                 for j in range(num_attributes):
-                    model = Model(queries, responses[..., j])
+                    if obs_attributes[j]:
+                        model = SingleTaskGP(
+                            train_X=queries_reshaped,
+                            train_Y=utility_vals_reshaped[..., [j]],
+                            outcome_transform=Standardize(m=1),
+                        )
+                    else:
+                        model = Model(queries, responses[..., j])
                     models.append(model)
 
                 model = ModelListGP(*models)
@@ -53,7 +82,7 @@ def generate_initial_data(
     num_queries: int,
     batch_size: int,
     input_dim: int,
-    attribute_func,
+    utility_func,
     comp_noise_type,
     comp_noise,
     algo,
@@ -61,9 +90,9 @@ def generate_initial_data(
 ):
     # generates initial data
     queries = generate_random_queries(num_queries, batch_size, input_dim, seed)
-    attribute_vals = get_attribute_vals(queries, attribute_func)
-    responses = generate_responses(attribute_vals, comp_noise_type, comp_noise, algo)
-    return queries, attribute_vals, responses
+    utility_vals = get_utility_vals(queries, utility_func)
+    responses = generate_responses(utility_vals, comp_noise_type, comp_noise, algo)
+    return queries, utility_vals, responses
 
 
 def generate_random_queries(
@@ -80,37 +109,37 @@ def generate_random_queries(
     return queries
 
 
-def get_attribute_vals(queries, attribute_func):
+def get_utility_vals(queries, utility_func):
     queries_2d = queries.reshape(
         torch.Size([queries.shape[0] * queries.shape[1], queries.shape[2]])
     )
 
-    attribute_vals = attribute_func(queries_2d)
-    attribute_vals = attribute_vals.reshape(
-        torch.Size([queries.shape[0], queries.shape[1], attribute_vals.shape[1]])
+    utility_vals = utility_func(queries_2d)
+    utility_vals = utility_vals.reshape(
+        torch.Size([queries.shape[0], queries.shape[1], utility_vals.shape[1]])
     )
-    return attribute_vals
+    return utility_vals
 
 
-def generate_responses(attribute_vals, noise_type, noise_level, algo):
-    # generates simulated (noisy) comparisons based on true underlying attribute values
-    corrupted_attribute_vals = corrupt_vals(attribute_vals, noise_type, noise_level)
+def generate_responses(utility_vals, noise_type, noise_level, algo):
+    # generates simulated (noisy) comparisons based on true underlying utility values
+    corrupted_utility_vals = corrupt_vals(utility_vals, noise_type, noise_level)
     if algo == "I-PBO-DTS":
-        weights = sample_simplex(d=attribute_vals.shape[-1]).squeeze()
+        weights = sample_simplex(d=utility_vals.shape[-1]).squeeze()
         chebyshev_scalarization = get_chebyshev_scalarization(
             weights=weights,
-            Y=corrupted_attribute_vals[:, 0, :],
+            Y=corrupted_utility_vals[:, 0, :],
         )
-        corrupted_scalarization_vals = chebyshev_scalarization(corrupted_attribute_vals)
+        corrupted_scalarization_vals = chebyshev_scalarization(corrupted_utility_vals)
         responses = torch.argmax(corrupted_scalarization_vals, dim=-1)
 
     else:
-        responses = torch.argmax(corrupted_attribute_vals, dim=-2)
+        responses = torch.argmax(corrupted_utility_vals, dim=-2)
     return responses
 
 
 def corrupt_vals(vals, noise_type, noise_level):
-    # corrupts attribute values to simulate noise in the DM's responses
+    # corrupts utility values to simulate noise in the DM's responses
     if noise_type == "noiseless":
         corrupted_vals = vals
     elif noise_type == "probit":

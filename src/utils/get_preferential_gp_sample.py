@@ -2,6 +2,7 @@ import torch
 
 from botorch.models.model_list_gp_regression import ModelListGP
 from botorch.models.deterministic import GenericDeterministicModel
+from botorch.models.gp_regression import SingleTaskGP
 from botorch.utils.gp_sampling import get_gp_samples
 from copy import copy
 
@@ -41,13 +42,18 @@ def get_preferential_gp_rff_sample(model, n_samples):
     elif isinstance(model, ModelListGP):
         gp_samples = []
         for attribute_model in model.models:
-            adapted_model = copy(attribute_model)
-            queries_items = adapted_model.train_inputs[0]
-            sample_at_queries_items = adapted_model.posterior(queries_items).sample()
-            sample_at_queries_items = sample_at_queries_items.view(
-                (queries_items.shape[0],)
-            )
-            adapted_model.train_targets = sample_at_queries_items
+            if isinstance(attribute_model, SingleTaskGP):
+                adapted_model = attribute_model
+            elif isinstance(attribute_model, VariationalPreferentialGP):
+                adapted_model = copy(attribute_model)
+                queries_items = adapted_model.train_inputs[0]
+                sample_at_queries_items = adapted_model.posterior(
+                    queries_items
+                ).sample()
+                sample_at_queries_items = sample_at_queries_items.view(
+                    (queries_items.shape[0],)
+                )
+                adapted_model.train_targets = sample_at_queries_items
             gp_samples.append(
                 get_gp_samples(
                     model=adapted_model,

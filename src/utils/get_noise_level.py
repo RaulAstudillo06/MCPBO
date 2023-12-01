@@ -22,7 +22,7 @@ def get_noise_level(
 
         res = minimize(
             error_rate_loss,
-            x0=0.001,
+            x0=0.01,
             args=(target_Y, true_comps, target_error, comp_noise_type),
         )
         print(res)

@@ -14,25 +14,19 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.experiment_manager import experiment_manager
-from src.get_noise_level import get_noise_level
+from src.utils.get_noise_level import get_noise_level
 
 
-# Attribute function
+# Utility function
 input_dim = 3
 num_attributes = 2
-attribute_func = DTLZ2(dim=input_dim, negate=True)
-
-# Algos
-algo = "SDTS"
-# algo = "SDTS-HS"
-# algo = "I-PBO-DTS"
-# algo = "Random"
+utility_func = DTLZ2(dim=input_dim, num_objectives=num_attributes, negate=True)
 
 # Estimate noise level
 comp_noise_type = "logit"
 if False:
     noise_level = get_noise_level(
-        attribute_func,
+        utility_func,
         input_dim,
         target_error=0.2,
         top_proportion=0.01,
@@ -44,6 +38,11 @@ if False:
 
 noise_level = [0.0033, 0.0033]
 
+# Algos
+algo = "SDTS"
+# algo = "I-PBO-DTS"
+# algo = "Random"
+
 # Run experiment
 if len(sys.argv) == 3:
     first_trial = int(sys.argv[1])
@@ -53,10 +52,11 @@ elif len(sys.argv) == 2:
     last_trial = int(sys.argv[1])
 
 experiment_manager(
-    problem="dtlz2",
-    attribute_func=attribute_func,
+    problem="dtlz2_mixed",
+    utility_func=utility_func,
     input_dim=input_dim,
     num_attributes=num_attributes,
+    obs_attributes=[True, False],
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,

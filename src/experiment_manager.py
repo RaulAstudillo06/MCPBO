@@ -1,16 +1,17 @@
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional
 
-from src.mcpbo_trial import mcpbo_trial
+from src.one_trial import one_trial
 
 
 def experiment_manager(
     problem: str,  # problem id
-    attribute_func: Callable,  # attribute function (x -> f(x))
+    utility_func: Callable,  # utility function (x -> f(x))
     input_dim: int,  # input dimension
-    num_attributes: int,  # number of attributes (i.e., output dimension of h)
+    num_attributes: int,  # number of attributes (i.e., output dimension of f)
+    obs_attributes: List,  #
     comp_noise_type: str,  # type of comparison noise ("probit" and "logit" noise are supported)
     comp_noise: float,  # scalar determining the magnitude of the comparison noise
-    algo: str,  # algo or acquisition function id ("qEUBO", "qTS", and "Random" are supported)
+    algo: str,  # algo or acquisition function id
     batch_size: int,  # number of items in the query (e.g., 2 for standard binary queries)
     num_init_queries: int,  # number of initial queries (these are selected uniformly at random over the input space)
     num_algo_iter: int,  # number of queries selected by the algorithm
@@ -22,11 +23,12 @@ def experiment_manager(
 ) -> None:
     # `trial` determines the random seed of each trial
     for trial in range(first_trial, last_trial + 1):
-        mcpbo_trial(
+        one_trial(
             problem=problem,
-            attribute_func=attribute_func,
+            utility_func=utility_func,
             input_dim=input_dim,
             num_attributes=num_attributes,
+            obs_attributes=obs_attributes,
             comp_noise_type=comp_noise_type,
             comp_noise=comp_noise,
             algo=algo,

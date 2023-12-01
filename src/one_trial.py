@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional
 
 import numpy as np
 import os
@@ -10,23 +10,26 @@ import torch
 from botorch.models.model import Model
 from torch import Tensor
 
-from src.acquisition_functions.thompson_sampling import gen_thompson_sampling_query
-from src.utils import (
+from src.acquisition_functions.dueling_thompson_sampling import (
+    gen_dueling_thompson_sampling_query,
+)
+from src.utils.utils import (
     fit_model,
     generate_initial_data,
     generate_random_queries,
-    get_attribute_vals,
+    get_utility_vals,
     generate_responses,
 )
 
 
 # this function runs a single trial of a given problem
 # see more details about the arguments in experiment_manager.py
-def mcpbo_trial(
+def one_trial(
     problem: str,
-    attribute_func: Callable,
+    utility_func: Callable,
     input_dim: int,
     num_attributes: int,
+    obs_attributes: List,
     comp_noise_type: str,
     comp_noise: float,
     algo: str,
@@ -62,18 +65,15 @@ def mcpbo_trial(
                 queries.shape[0], batch_size, int(queries.shape[1] / batch_size)
             )
             queries = torch.tensor(queries)
-            attribute_vals = torch.tensor(
+            utility_vals = torch.tensor(
                 np.loadtxt(
-                    results_folder
-                    + "attribute_vals/attribute_vals_"
-                    + str(trial)
-                    + ".txt"
+                    results_folder + "utility_vals/utility_vals_" + str(trial) + ".txt"
                 )
             )
-            attribute_vals = attribute_vals.reshape(
-                attribute_vals.shape[0],
+            utility_vals = utility_vals.reshape(
+                utility_vals.shape[0],
                 batch_size,
-                int(attribute_vals.shape[1] / batch_size),
+                int(utility_vals.shape[1] / batch_size),
             )
             responses = torch.tensor(
                 np.loadtxt(
@@ -93,7 +93,9 @@ def mcpbo_trial(
             t0 = time.time()
             model = fit_model(
                 queries,
+                utility_vals,
                 responses,
+                obs_attributes=obs_attributes,
                 model_id=model_id,
                 algo=algo,
             )
@@ -105,11 +107,11 @@ def mcpbo_trial(
 
         except:
             # initial data
-            queries, attribute_vals, responses = generate_initial_data(
+            queries, utility_vals, responses = generate_initial_data(
                 num_queries=num_init_queries,
                 batch_size=batch_size,
                 input_dim=input_dim,
-                attribute_func=attribute_func,
+                utility_func=utility_func,
                 comp_noise_type=comp_noise_type,
                 comp_noise=comp_noise,
                 algo=algo,
@@ -120,7 +122,9 @@ def mcpbo_trial(
             t0 = time.time()
             model = fit_model(
                 queries,
+                utility_vals,
                 responses,
+                obs_attributes=obs_attributes,
                 model_id=model_id,
                 algo=algo,
             )
@@ -133,11 +137,11 @@ def mcpbo_trial(
             iteration = 0
     else:
         # initial data
-        queries, attribute_vals, responses = generate_initial_data(
+        queries, utility_vals, responses = generate_initial_data(
             num_queries=num_init_queries,
             batch_size=batch_size,
             input_dim=input_dim,
-            attribute_func=attribute_func,
+            utility_func=utility_func,
             comp_noise_type=comp_noise_type,
             comp_noise=comp_noise,
             algo=algo,
@@ -148,7 +152,9 @@ def mcpbo_trial(
         t0 = time.time()
         model = fit_model(
             queries,
+            utility_vals,
             responses,
+            obs_attributes=obs_attributes,
             model_id=model_id,
             algo=algo,
         )
@@ -181,9 +187,9 @@ def mcpbo_trial(
         runtimes.append(acquisition_time + model_training_time)
 
         # get response at new query
-        new_attribute_vals = get_attribute_vals(new_query, attribute_func)
+        new_utility_vals = get_utility_vals(new_query, utility_func)
         new_responses = generate_responses(
-            new_attribute_vals,
+            new_utility_vals,
             noise_type=comp_noise_type,
             noise_level=comp_noise,
             algo=algo,
@@ -191,14 +197,16 @@ def mcpbo_trial(
 
         # update training data
         queries = torch.cat((queries, new_query))
-        attribute_vals = torch.cat([attribute_vals, new_attribute_vals], 0)
+        utility_vals = torch.cat([utility_vals, new_utility_vals], 0)
         responses = torch.cat((responses, new_responses))
 
         # fit model
         t0 = time.time()
         model = fit_model(
             queries,
+            utility_vals,
             responses,
+            obs_attributes=obs_attributes,
             model_id=model_id,
             algo=algo,
         )
@@ -210,8 +218,8 @@ def mcpbo_trial(
             os.makedirs(results_folder)
         if not os.path.exists(results_folder + "queries/"):
             os.makedirs(results_folder + "queries/")
-        if not os.path.exists(results_folder + "attribute_vals/"):
-            os.makedirs(results_folder + "attribute_vals/")
+        if not os.path.exists(results_folder + "utility_vals/"):
+            os.makedirs(results_folder + "utility_vals/")
         if not os.path.exists(results_folder + "responses/"):
             os.makedirs(results_folder + "responses/")
         if not os.path.exists(results_folder + "runtimes/"):
@@ -221,12 +229,10 @@ def mcpbo_trial(
         np.savetxt(
             results_folder + "queries/queries_" + str(trial) + ".txt", queries_reshaped
         )
-        attribute_vals_reshaped = attribute_vals.numpy().reshape(
-            attribute_vals.shape[0], -1
-        )
+        utility_vals_reshaped = utility_vals.numpy().reshape(utility_vals.shape[0], -1)
         np.savetxt(
-            results_folder + "attribute_vals/attribute_vals_" + str(trial) + ".txt",
-            attribute_vals_reshaped,
+            results_folder + "utility_vals/utility_vals_" + str(trial) + ".txt",
+            utility_vals_reshaped,
         )
         np.savetxt(
             results_folder + "responses/responses_" + str(trial) + ".txt",
@@ -236,10 +242,8 @@ def mcpbo_trial(
             results_folder + "runtimes/runtimes_" + str(trial) + ".txt",
             np.atleast_1d(runtimes),
         )
-    attribute_vals_reshaped = attribute_vals.numpy().reshape(
-        attribute_vals.shape[0], -1
-    )
-    return attribute_vals_reshaped
+    utility_vals_reshaped = utility_vals.numpy().reshape(utility_vals.shape[0], -1)
+    return utility_vals_reshaped
 
 
 # computes the new query to be shown to the DM
@@ -259,7 +263,7 @@ def get_new_suggested_query(
             num_queries=1, batch_size=batch_size, input_dim=input_dim
         )
     elif algo == "SDTS":
-        new_query = gen_thompson_sampling_query(
+        new_query = gen_dueling_thompson_sampling_query(
             model,
             batch_size,
             standard_bounds,
@@ -269,7 +273,7 @@ def get_new_suggested_query(
             fix_scalarization=True,
         )
     elif algo == "SDTS-HS":
-        new_query = gen_thompson_sampling_query(
+        new_query = gen_dueling_thompson_sampling_query(
             model,
             batch_size,
             standard_bounds,
@@ -279,7 +283,7 @@ def get_new_suggested_query(
             fix_scalarization=False,
         )
     elif algo == "I-PBO-DTS":
-        new_query = gen_thompson_sampling_query(
+        new_query = gen_dueling_thompson_sampling_query(
             model,
             batch_size,
             standard_bounds,
