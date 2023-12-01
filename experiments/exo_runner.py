@@ -17,10 +17,10 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.experiment_manager import experiment_manager
-from src.get_noise_level import get_noise_level
+from src.utils.get_noise_level import get_noise_level
 
 
-# Objective function
+# Utility function
 input_dim = 5
 num_attributes = 3
 
@@ -37,21 +37,15 @@ model.load_state_dict(torch.load("exo_data/exo_surrogate_state_dict.json"), stri
 model.eval()
 
 
-def attribute_func(X: Tensor) -> Tensor:
+def utility_func(X: Tensor) -> Tensor:
     return model.posterior(X).mean.detach()
 
-
-# Algos
-# algo = "SDTS"
-# algo = "SDTS-HS"
-# algo = "I-PBO-DTS"
-algo = "Random"
 
 # Estimate noise level
 comp_noise_type = "logit"
 if False:
     noise_level = get_noise_level(
-        attribute_func,
+        utility_func,
         input_dim,
         target_error=0.2,
         top_proportion=0.01,
@@ -63,6 +57,11 @@ if False:
 
 noise_level = [0.0169, 0.0082, 0.0028]
 
+# Algos
+algo = "SDTS"
+# algo = "I-PBO-DTS"
+# algo = "Random"
+
 # Run experiment
 if len(sys.argv) == 3:
     first_trial = int(sys.argv[1])
@@ -72,10 +71,11 @@ elif len(sys.argv) == 2:
     last_trial = int(sys.argv[1])
 
 experiment_manager(
-    problem="exo",
-    attribute_func=attribute_func,
+    problem="exo_mixed",
+    utility_func=utility_func,
     input_dim=input_dim,
     num_attributes=num_attributes,
+    obs_attributes=[True, False, False],
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,
