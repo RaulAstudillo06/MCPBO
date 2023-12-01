@@ -16,32 +16,26 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.experiment_manager import experiment_manager
-from src.get_noise_level import get_noise_level
+from src.utils.get_noise_level import get_noise_level
 
 
-# Attribute function
+# Utility function
 vehiclesafety_func = VehicleSafety(negate=True)
 input_dim = vehiclesafety_func.dim
 num_attributes = vehiclesafety_func.num_objectives
 
 
-def attribute_func(X: Tensor) -> Tensor:
+def utility_func(X: Tensor) -> Tensor:
     X_unscaled = 2.0 * X + 1.0
     output = vehiclesafety_func(X_unscaled)
     return output
 
 
-# Algos
-algo = "SDTS"
-# algo = "SDTS-HS"
-# algo = "I-PBO-DTS"
-# algo = "Random"
-
 # Estimate noise level
 comp_noise_type = "logit"
 if False:
     noise_level = get_noise_level(
-        attribute_func,
+        utility_func,
         input_dim,
         target_error=0.2,
         top_proportion=0.01,
@@ -51,8 +45,12 @@ if False:
     print(noise_level)
     print(e)
 
-
 noise_level = [0.6146, 0.0989, 0.0021]
+
+# Algos
+algo = "SDTS"
+# algo = "I-PBO-DTS"
+# algo = "Random"
 
 # Run experiment
 if len(sys.argv) == 3:
@@ -63,10 +61,11 @@ elif len(sys.argv) == 2:
     last_trial = int(sys.argv[1])
 
 experiment_manager(
-    problem="vehiclesafety",
-    attribute_func=attribute_func,
+    problem="vehiclesafety_mixed",
+    utility_func=utility_func,
     input_dim=input_dim,
     num_attributes=num_attributes,
+    obs_attributes=[False, False, True],
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,
