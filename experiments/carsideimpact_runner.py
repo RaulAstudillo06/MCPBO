@@ -16,17 +16,17 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.experiment_manager import experiment_manager
-from src.get_noise_level import get_noise_level
+from src.utils.get_noise_level import get_noise_level
 
 
-# Attribute function
+# Utility function
 carsideimpact_func = CarSideImpact(negate=True)
 input_dim = carsideimpact_func.dim
 num_attributes = carsideimpact_func.num_objectives
 bounds = torch.tensor(carsideimpact_func._bounds)
 
 
-def attribute_func(X: Tensor) -> Tensor:
+def utility_func(X: Tensor) -> Tensor:
     X_unscaled = X * (bounds[:, 1] - bounds[:, 0]) + bounds[:, 0]
     output = carsideimpact_func(X_unscaled)
     return output
@@ -36,7 +36,7 @@ def attribute_func(X: Tensor) -> Tensor:
 comp_noise_type = "logit"
 if False:
     noise_level = get_noise_level(
-        attribute_func,
+        utility_func,
         input_dim,
         target_error=0.2,
         top_proportion=0.01,
@@ -46,14 +46,13 @@ if False:
     print(noise_level)
     print(e)
 
+noise_level = [0.3933, 0.0131, 0.0455, 0.01]
+
 # Algos
-algo = "SDTS"
+# algo = "SDTS"
+algo = "qEHVI"
 # algo = "I-PBO-DTS"
 # algo = "Random"
-
-# estimate noise level
-comp_noise_type = "logit"
-noise_level = [0.3933, 0.0131, 0.0455, 0.01]
 
 # Run experiment
 if len(sys.argv) == 3:
@@ -65,15 +64,16 @@ elif len(sys.argv) == 2:
 
 experiment_manager(
     problem="carsideimpact",
-    attribute_func=attribute_func,
+    utility_func=utility_func,
     input_dim=input_dim,
     num_attributes=num_attributes,
+    obs_attributes=[False, False, False, False],
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,
     batch_size=2,
     num_init_queries=2 * (input_dim + 1),
-    num_algo_iter=2,
+    num_algo_iter=100,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=True,
