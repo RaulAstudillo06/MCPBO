@@ -7,7 +7,14 @@ import os
 import sys
 import time
 import torch
+from botorch.acquisition.multi_objective.monte_carlo import (
+    qExpectedHypervolumeImprovement,
+)
 from botorch.models.model import Model
+from botorch.sampling.normal import SobolQMCNormalSampler
+from botorch.utils.multi_objective.box_decompositions.non_dominated import (
+    FastNondominatedPartitioning,
+)
 from torch import Tensor
 
 from src.acquisition_functions.dueling_thompson_sampling import (
@@ -19,6 +26,7 @@ from src.utils.utils import (
     generate_random_queries,
     get_utility_vals,
     generate_responses,
+    optimize_acqf_and_get_suggested_query,
 )
 
 
@@ -291,4 +299,25 @@ def get_new_suggested_query(
             raw_samples,
             scalarize=False,
         )
+    elif algo == "qEHVI":
+        mean_at_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
+        ref_point = mean_at_train_inputs.min(0).values
+        partitioning = FastNondominatedPartitioning(
+            ref_point=ref_point,
+            Y=mean_at_train_inputs,
+        )
+        acquisition_function = qExpectedHypervolumeImprovement(
+            model=model,
+            ref_point=ref_point,
+            partitioning=partitioning,
+            sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
+        )
+    new_query = optimize_acqf_and_get_suggested_query(
+        acq_func=acquisition_function,
+        bounds=standard_bounds,
+        batch_size=batch_size,
+        num_restarts=num_restarts,
+        raw_samples=raw_samples,
+    )
+    new_query = new_query.unsqueeze(0)
     return new_query

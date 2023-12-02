@@ -39,7 +39,8 @@ if False:
 noise_level = [0.0033, 0.0033]
 
 # Algos
-algo = "SDTS"
+# algo = "SDTS"
+algo = "qEHVI"
 # algo = "I-PBO-DTS"
 # algo = "Random"
 
@@ -52,11 +53,11 @@ elif len(sys.argv) == 2:
     last_trial = int(sys.argv[1])
 
 experiment_manager(
-    problem="dtlz2_mixed",
+    problem="dtlz2",
     utility_func=utility_func,
     input_dim=input_dim,
     num_attributes=num_attributes,
-    obs_attributes=[True, False],
+    obs_attributes=[False, False],
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,
