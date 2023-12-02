@@ -84,8 +84,9 @@ def fit_model(
 
                 model = ModelListGP(*models)
             return model
-        except:
+        except Exception as error:
             print("Number of failed attempts to train the model: " + str(i + 1))
+            print(error)
 
 
 def generate_initial_data(
