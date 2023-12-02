@@ -312,12 +312,12 @@ def get_new_suggested_query(
             partitioning=partitioning,
             sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
         )
-    new_query = optimize_acqf_and_get_suggested_query(
-        acq_func=acquisition_function,
-        bounds=standard_bounds,
-        batch_size=batch_size,
-        num_restarts=num_restarts,
-        raw_samples=raw_samples,
-    )
-    new_query = new_query.unsqueeze(0)
+        new_query = optimize_acqf_and_get_suggested_query(
+            acq_func=acquisition_function,
+            bounds=standard_bounds,
+            batch_size=batch_size,
+            num_restarts=num_restarts,
+            raw_samples=raw_samples,
+        )
+        new_query = new_query.unsqueeze(0)
     return new_query
