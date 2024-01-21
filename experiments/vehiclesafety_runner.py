@@ -48,9 +48,10 @@ if False:
 noise_level = [0.6146, 0.0989, 0.0021]
 
 # Algos
-algo = "SDTS"
+# algo = "SDTS"
 # algo = "I-PBO-DTS"
 # algo = "Random"
+algo = "qEHVI"
 
 # Run experiment
 if len(sys.argv) == 3:
@@ -61,11 +62,11 @@ elif len(sys.argv) == 2:
     last_trial = int(sys.argv[1])
 
 experiment_manager(
-    problem="vehiclesafety_mixed",
+    problem="vehiclesafety",
     utility_func=utility_func,
     input_dim=input_dim,
     num_attributes=num_attributes,
-    obs_attributes=[False, False, True],
+    obs_attributes=[False, False, False],
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,

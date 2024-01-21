@@ -58,9 +58,10 @@ if False:
 noise_level = [0.0169, 0.0082, 0.0028]
 
 # Algos
-algo = "SDTS"
+# algo = "SDTS"
 # algo = "I-PBO-DTS"
 # algo = "Random"
+algo = "qEHVI"
 
 # Run experiment
 if len(sys.argv) == 3:
@@ -75,7 +76,7 @@ experiment_manager(
     utility_func=utility_func,
     input_dim=input_dim,
     num_attributes=num_attributes,
-    obs_attributes=[True, False, False],
+    obs_attributes=[False, False, False],
     comp_noise_type=comp_noise_type,
     comp_noise=noise_level,
     algo=algo,
