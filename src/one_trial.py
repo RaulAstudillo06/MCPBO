@@ -14,8 +14,10 @@ from botorch.acquisition.monte_carlo import (
     qExpectedImprovement
 )
 from botorch.acquisition.objective import GenericMCObjective
+from botorch.models.deterministic import PosteriorMeanModel
 from botorch.models.model import Model
 from botorch.sampling.normal import SobolQMCNormalSampler
+from botorch.sampling.stochastic_samplers import StochasticSampler
 from botorch.utils.multi_objective.box_decompositions.non_dominated import (
     FastNondominatedPartitioning,
 )
@@ -26,6 +28,7 @@ from torch import Tensor
 from src.acquisition_functions.dueling_thompson_sampling import (
     gen_dueling_thompson_sampling_query,
 )
+from src.utils.get_preferential_gp_sample import get_preferential_gp_rff_sample
 from src.utils.utils import (
     fit_model,
     generate_initial_data,
@@ -335,6 +338,31 @@ def get_new_suggested_query(
             ref_point=ref_point,
             partitioning=partitioning,
             sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
+        )
+        new_query = optimize_acqf_and_get_suggested_query(
+            acq_func=acquisition_function,
+            bounds=standard_bounds,
+            batch_size=batch_size,
+            num_restarts=num_restarts,
+            raw_samples=raw_samples,
+        )
+        new_query = new_query.unsqueeze(0)
+    elif algo == "qPHVS":
+        model_rff_sample = get_preferential_gp_rff_sample(model=model, n_samples=1)
+        model = PosteriorMeanModel(model=model_rff_sample)
+        sampler = StochasticSampler(sample_shape=torch.Size([1]))  # dummy sampler
+        acquisition_function = qExpectedHypervolumeImprovement(
+            model=model,
+            ref_point=ref_point,
+            partitioning=FastNondominatedPartitioning(
+                ref_point=ref_point,
+                Y=torch.empty(
+                    (0, ref_point.shape[0]),
+                    dtype=ref_point.dtype,
+                    device=ref_point.device,
+                ),
+            ),  # create empty partitioning
+            sampler=sampler,
         )
         new_query = optimize_acqf_and_get_suggested_query(
             acq_func=acquisition_function,
