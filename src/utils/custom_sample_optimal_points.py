@@ -4,13 +4,61 @@ from math import ceil
 from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
-from botorch.acquisition.multi_objective.utils import random_search_optimizer
 from botorch.exceptions.errors import UnsupportedError
 from botorch.models.deterministic import GenericDeterministicModel
 from botorch.models.model import Model
+from botorch.utils.multi_objective.pareto import is_non_dominated
+from botorch.utils.sampling import draw_sobol_samples
 from torch import Tensor
 
 from src.utils.get_preferential_gp_sample import get_preferential_gp_rff_sample
+
+
+def random_search_optimizer(
+    model: GenericDeterministicModel,
+    bounds: Tensor,
+    num_points: int,
+    maximize: bool,
+    pop_size: int = 1024,
+    max_tries: int = 10,
+) -> Tuple[Tensor, Tensor]:
+    r"""Optimize a function via random search.
+
+    Args:
+        model: The model.
+        bounds: A `2 x d`-dim Tensor containing the input bounds.
+        num_points: The number of optimal points to be outputted.
+        maximize: If true, we consider a maximization problem.
+        pop_size: The number of function evaluations per try.
+        max_tries: The maximum number of tries.
+
+    Returns:
+        A two-element tuple containing
+
+        - A `num_points x d`-dim Tensor containing the collection of optimal inputs.
+        - A `num_points x M`-dim Tensor containing the collection of optimal
+            objectives.
+    """
+    tkwargs = {"dtype": bounds.dtype, "device": bounds.device}
+    weight = 1.0 if maximize else -1.0
+    optimal_inputs = torch.tensor([], **tkwargs)
+    optimal_outputs = torch.tensor([], **tkwargs)
+    num_tries = 0
+    ratio = 2
+    while ratio > 1 and num_tries < max_tries:
+        X = draw_sobol_samples(bounds=bounds, n=pop_size, q=1).squeeze(-2)
+        Y = model.posterior(X).mean
+        X_aug = torch.cat([optimal_inputs, X], dim=0)
+        Y_aug = torch.cat([optimal_outputs, Y], dim=0)
+        pareto_mask = is_non_dominated(weight * Y_aug)
+        optimal_inputs = X_aug[pareto_mask]
+        optimal_outputs = Y_aug[pareto_mask]
+        num_found = len(optimal_inputs)
+        ratio = ceil(num_points / num_found)
+        num_tries = num_tries + 1
+    # If maximum number of retries exceeded throw out a runtime error.
+    return optimal_inputs, optimal_outputs
+    
 
 def sample_optimal_points(
     model: Model,
