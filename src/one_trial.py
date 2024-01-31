@@ -17,7 +17,6 @@ from botorch.acquisition.multi_objective.monte_carlo import (
     qExpectedHypervolumeImprovement,
 )
 from botorch.acquisition.multi_objective.utils import (
-    sample_optimal_points,
     random_search_optimizer,
     compute_sample_box_decomposition
 )
@@ -36,6 +35,7 @@ from torch import Tensor
 from src.acquisition_functions.dueling_thompson_sampling import (
     gen_dueling_thompson_sampling_query,
 )
+from src.utils.custom_sample_optimal_points import sample_optimal_points
 from src.utils.get_preferential_gp_sample import get_preferential_gp_rff_sample
 from src.utils.utils import (
     fit_model,
