@@ -363,6 +363,8 @@ def get_new_suggested_query(
             estimation_type="LB",
         )
     elif algo == "qPHVS":
+        mean_at_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
+        ref_point = mean_at_train_inputs.min(0).values
         model_rff_sample = get_preferential_gp_rff_sample(model=model, n_samples=1)
         model = PosteriorMeanModel(model=model_rff_sample)
         sampler = StochasticSampler(sample_shape=torch.Size([1]))  # dummy sampler
