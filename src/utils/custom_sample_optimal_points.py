@@ -3,6 +3,7 @@ from __future__ import annotations
 from math import ceil
 from typing import Any, Callable, Dict, Optional, Tuple
 
+import numpy as np
 import torch
 from botorch.exceptions.errors import UnsupportedError
 from botorch.models.deterministic import GenericDeterministicModel
@@ -114,8 +115,9 @@ def sample_optimal_points(
             )
     if optimizer_kwargs is None:
         optimizer_kwargs = {}
-    pareto_sets = torch.zeros((num_samples, num_points, d), **tkwargs)
-    pareto_fronts = torch.zeros((num_samples, num_points, M), **tkwargs)
+    pareto_sets = []
+    pareto_fronts = []
+    min_num_points = np.inf
     for i in range(num_samples):
         sample_i = get_preferential_gp_rff_sample(
             model=model, n_samples=1
@@ -127,7 +129,9 @@ def sample_optimal_points(
             maximize=maximize,
             **optimizer_kwargs,
         )
-        pareto_sets[i, ...] = ps_i
-        pareto_fronts[i, ...] = pf_i
-
+        min_num_points = min(min_num_points, len(ps_i))
+        pareto_sets.append(ps_i.clone().unsqueeze(0))
+        pareto_fronts.append(pf_i.clone().unsqueeze(0))
+    pareto_sets = torch.cat([pareto_set[:, :min_num_points, :] for pareto_set in pareto_sets])
+    pareto_fronts = torch.cat([pareto_front[:, :min_num_points, :] for pareto_front in pareto_fronts])
     return pareto_sets, pareto_fronts
