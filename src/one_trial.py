@@ -10,9 +10,6 @@ import torch
 from botorch.acquisition.multi_objective.joint_entropy_search import (
     qLowerBoundMultiObjectiveJointEntropySearch,
 )
-from botorch.acquisition.multi_objective.max_value_entropy_search import (
-    qLowerBoundMultiObjectiveMaxValueEntropySearch
-)
 from botorch.acquisition.monte_carlo import (
     qExpectedImprovement
 )
@@ -38,6 +35,7 @@ from torch import Tensor
 from src.acquisition_functions.dueling_thompson_sampling import (
     gen_dueling_thompson_sampling_query,
 )
+from src.acquisition_functions.custom_mes import qLowerBoundMultiObjectiveMaxValueEntropySearch
 from src.utils.custom_sample_optimal_points import sample_optimal_points
 from src.utils.get_preferential_gp_sample import get_preferential_gp_rff_sample
 from src.utils.utils import (
