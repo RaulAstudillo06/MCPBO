@@ -122,7 +122,7 @@ class qLowerBoundMultiObjectiveMaxValueEntropySearch(
 
         # Compute the posterior entropy term.
         posterior_plus_noise = self.model.posterior(
-            X.unsqueeze(-2), observation_noise=True
+            X.unsqueeze(-2), observation_noise=False
         )
 
         # `batch_shape x q x 1 x M`
