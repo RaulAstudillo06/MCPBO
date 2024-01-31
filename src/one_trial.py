@@ -7,11 +7,19 @@ import os
 import sys
 import time
 import torch
-from botorch.acquisition.multi_objective.monte_carlo import (
-    qExpectedHypervolumeImprovement,
+from botorch.acquisition.multi_objective.joint_entropy_search import (
+    qLowerBoundMultiObjectiveJointEntropySearch,
 )
 from botorch.acquisition.monte_carlo import (
     qExpectedImprovement
+)
+from botorch.acquisition.multi_objective.monte_carlo import (
+    qExpectedHypervolumeImprovement,
+)
+from botorch.acquisition.multi_objective.utils import (
+    sample_optimal_points,
+    random_search_optimizer,
+    compute_sample_box_decomposition
 )
 from botorch.acquisition.objective import GenericMCObjective
 from botorch.models.deterministic import PosteriorMeanModel
@@ -318,14 +326,6 @@ def get_new_suggested_query(
             best_f=chebyshev_scalarization(mean_at_train_inputs).max(),
             sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
         )
-        new_query = optimize_acqf_and_get_suggested_query(
-            acq_func=acquisition_function,
-            bounds=standard_bounds,
-            batch_size=batch_size,
-            num_restarts=num_restarts,
-            raw_samples=raw_samples,
-        )
-        new_query = new_query.unsqueeze(0)
     elif algo == "qEHVI":
         mean_at_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
         ref_point = mean_at_train_inputs.min(0).values
@@ -339,14 +339,29 @@ def get_new_suggested_query(
             partitioning=partitioning,
             sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
         )
-        new_query = optimize_acqf_and_get_suggested_query(
-            acq_func=acquisition_function,
+    elif algo == "qJES":
+        num_pareto_samples = 10
+        num_pareto_points = 10
+        optimizer_kwargs = {
+            "pop_size": 2000,
+            "max_tries": 10,
+        }
+        ps, pf = sample_optimal_points(
+            model=model,
             bounds=standard_bounds,
-            batch_size=batch_size,
-            num_restarts=num_restarts,
-            raw_samples=raw_samples,
+            num_samples=num_pareto_samples,
+            num_points=num_pareto_points,
+            optimizer=random_search_optimizer,
+            optimizer_kwargs=optimizer_kwargs,
         )
-        new_query = new_query.unsqueeze(0)
+        hypercell_bounds = compute_sample_box_decomposition(pf)
+        acquisition_function = qLowerBoundMultiObjectiveJointEntropySearch(
+            model=model,
+            pareto_sets=ps,
+            pareto_fronts=pf,
+            hypercell_bounds=hypercell_bounds,
+            estimation_type="LB",
+        )
     elif algo == "qPHVS":
         model_rff_sample = get_preferential_gp_rff_sample(model=model, n_samples=1)
         model = PosteriorMeanModel(model=model_rff_sample)
@@ -364,6 +379,7 @@ def get_new_suggested_query(
             ),  # create empty partitioning
             sampler=sampler,
         )
+    if algo != "Random" and "DTS" not in algo:
         new_query = optimize_acqf_and_get_suggested_query(
             acq_func=acquisition_function,
             bounds=standard_bounds,
