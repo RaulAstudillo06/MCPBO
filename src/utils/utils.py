@@ -40,7 +40,7 @@ def fit_model(
                 model = None
             elif algo == "I-PBO-DTS":
                 model = Model(queries, responses)
-            elif "SDTS" in algo or algo == "qEHVI":
+            else:
                 models = []
                 num_attributes = responses.shape[-1]
                 if any(obs_attributes):
