@@ -17,7 +17,6 @@ from botorch.acquisition.multi_objective.monte_carlo import (
     qExpectedHypervolumeImprovement,
 )
 from botorch.acquisition.multi_objective.utils import (
-    random_search_optimizer,
     compute_sample_box_decomposition
 )
 from botorch.acquisition.objective import GenericMCObjective
@@ -352,7 +351,6 @@ def get_new_suggested_query(
             bounds=standard_bounds,
             num_samples=num_pareto_samples,
             num_points=num_pareto_points,
-            optimizer=random_search_optimizer,
             optimizer_kwargs=optimizer_kwargs,
         )
         hypercell_bounds = compute_sample_box_decomposition(pf)
@@ -375,7 +373,6 @@ def get_new_suggested_query(
             bounds=standard_bounds,
             num_samples=num_pareto_samples,
             num_points=num_pareto_points,
-            optimizer=random_search_optimizer,
             optimizer_kwargs=optimizer_kwargs,
         )
         hypercell_bounds = compute_sample_box_decomposition(pf)
