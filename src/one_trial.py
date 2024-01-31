@@ -10,6 +10,9 @@ import torch
 from botorch.acquisition.multi_objective.joint_entropy_search import (
     qLowerBoundMultiObjectiveJointEntropySearch,
 )
+from botorch.acquisition.multi_objective.max_value_entropy_search import (
+    qLowerBoundMultiObjectiveMaxValueEntropySearch
+)
 from botorch.acquisition.monte_carlo import (
     qExpectedImprovement
 )
@@ -343,7 +346,7 @@ def get_new_suggested_query(
         num_pareto_samples = 10
         num_pareto_points = 10
         optimizer_kwargs = {
-            "pop_size": 2000,
+            "pop_size": 5000,
             "max_tries": 10,
         }
         ps, pf = sample_optimal_points(
@@ -362,6 +365,28 @@ def get_new_suggested_query(
             hypercell_bounds=hypercell_bounds,
             estimation_type="LB",
         )
+    elif algo == "qMES":
+        num_pareto_samples = 10
+        num_pareto_points = 10
+        optimizer_kwargs = {
+            "pop_size": 5000,
+            "max_tries": 10,
+        }
+        ps, pf = sample_optimal_points(
+            model=model,
+            bounds=standard_bounds,
+            num_samples=num_pareto_samples,
+            num_points=num_pareto_points,
+            optimizer=random_search_optimizer,
+            optimizer_kwargs=optimizer_kwargs,
+        )
+        hypercell_bounds = compute_sample_box_decomposition(pf)
+        acquisition_function = qLowerBoundMultiObjectiveMaxValueEntropySearch(
+        model=model,
+        pareto_fronts=pf,
+        hypercell_bounds=hypercell_bounds,
+        estimation_type="LB",
+    )
     elif algo == "qPHVS":
         mean_at_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
         ref_point = mean_at_train_inputs.min(0).values
