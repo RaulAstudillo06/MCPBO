@@ -297,6 +297,17 @@ def get_new_suggested_query(
             scalarize=True,
             fix_scalarization=True,
         )
+    elif algo == "SDTS-HVS":
+        new_query = gen_dueling_thompson_sampling_query(
+            model,
+            batch_size,
+            standard_bounds,
+            num_restarts,
+            raw_samples,
+            scalarize=True,
+            fix_scalarization=True,
+            scalarization="hypervolume",
+        )
     elif algo == "SDTS-HS":
         new_query = gen_dueling_thompson_sampling_query(
             model,
